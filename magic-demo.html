@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <style>
+    h3 {
+      font-weight: normal;
+      font-family: arial;
+    }
+
+#correctness1, #correctness2 {
+  margin: 10px 0;
+  padding: 5px 10px;
+  border: 1px solid gray;
+  display: inline-block;
+  border-radius: 5px;
+  color: gray;
+  font-family: arial;
+}
+    
+  </style>
+  
+  <script src="https://www.desmos.com/api/v1.8/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  
+  <h3>
+    Drag the points to graph a line with a slope of 2.
+  </h3>
+  <div id="calculator1" style="width: 500px; height: 500px;"></div>
+  <div id="correctness1"></div>
+
+   <h3>
+    Drag the points to create a rectangle with an area of 24.
+  </h3>
+  <div id="calculator2" style="width: 500px; height: 500px;"></div>
+  <div id="correctness2"></div>
+
+  
+  
+  
+  <script>
+   
+    async function run1() {
+      const response = await fetch('https://www.desmos.com/calculator/lj267s3ijs', {
+        headers: {'Accept': 'application/json'}
+      });
+      const json = await response.json();
+      var calculator = Desmos.GraphingCalculator(document.getElementById('calculator1'), {
+        expressions: false,
+        zoomButtons: false,
+        settingsMenu: false,
+        lockViewport: true
+      });
+
+      calculator.setState(json.state);
+      var m = calculator.HelperExpression({ latex: 'm' });
+
+      m.observe('numericValue', function() {
+        document.getElementById('correctness1').innerText = m.numericValue === 2 ? 'correct!' : 'incorrect';
+      });
+  
+    }
+    
+    
+    async function run2() {
+      const response = await fetch('https://www.desmos.com/calculator/bgnwrwacsc', {
+        headers: {'Accept': 'application/json'}
+      });
+      const json = await response.json();
+      var calculator = Desmos.GraphingCalculator(document.getElementById('calculator2'), {
+        expressions: false,
+        zoomButtons: false,
+        settingsMenu: false,
+        lockViewport: true
+      });
+
+      calculator.setState(json.state);
+      var A = calculator.HelperExpression({ latex: 'A' });
+
+      A.observe('numericValue', function() {
+        document.getElementById('correctness2').innerText = A.numericValue === 24 ? 'correct!' : 'incorrect';
+      });
+  
+    }
+    
+    
+    run1();
+    run2();
+</script>
+</body>
+</html>
