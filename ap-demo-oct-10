@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+
+
+<style>
+
+body {
+  padding: 0 20px;;
+}
+
+h3 {
+  font-weight: normal;
+}
+
+h2 {
+  font-weight:normal;
+  color: #3273a2;
+}
+
+</style>
+</head>
+<body>
+  <h2>Example 1 - Chemistry: Lewis Dot Structure</h2>
+  <h3>Click on the elements to add electrons, and on the bonds to change their valence.</h3> 
+  <script src="https://www.desmos.com/api/v1.8/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+<div id="calculator" style="width: 450px; height: 120px;"></div>
+
+  <br><br><br><br>
+  <h2>Example 2 - Chemistry: Draw Curve</h2>
+  <h3>The graph below shows a distribution for the collision energies of reactant molecules at 120&deg;C. Drag the point to show a second curve that shows the distribution for the collision energies of reactant molecules at 30&deg;C.</h3> 
+  
+  <div id="calculator2" style="width: 600px; height: 400px;"></div>
+
+  
+  <script>
+  var elt = document.getElementById('calculator');
+  var c = Desmos.GraphingCalculator(elt,{
+    expressions: false,
+    lockViewport: true,
+    settingsMenu: false,
+    branding: false,
+    transparentBackground: true
+  });
+
+    
+    
+  var elt = document.getElementById('calculator2');
+  var c2 = Desmos.GraphingCalculator(elt,{
+    expressions: false,
+    lockViewport: true,
+    settingsMenu: false,
+    branding: false,
+    transparentBackground: true
+  });
+    
+    c2.setState({
+    "version": 10,
+    "randomSeed": "8524f3fb6481b23ae491583b60da1457",
+    "graph": {
+        "viewport": {
+            "xmin": -2.7478006475375736,
+            "ymin": -3.6989090272328635,
+            "xmax": 12.252199352462426,
+            "ymax": 11.0629957346719
+        },
+        "showGrid": false,
+        "xAxisLabel": "Energy of collisions",
+        "yAxisLabel": "Fraction of collisions",
+        "xAxisNumbers": false,
+        "yAxisNumbers": false,
+        "polarNumbers": false,
+        "restrictGridToFirstQuadrant": true
+    },
+    "expressions": {
+        "list": [
+            {
+                "type": "expression",
+                "id": "1",
+                "color": "#000000",
+                "latex": "f\\left(x\\right)=a\\cdot x^{b}\\cdot e^{-x}\\left\\{x>0\\right\\}",
+                "lineStyle": "DASHED",
+                "lineWidth": "1.5"
+            },
+            {
+                "type": "expression",
+                "id": "7",
+                "color": "#000000",
+                "latex": "x^{4}e^{-x}\\left\\{x>0\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "3",
+                "color": "#388c46",
+                "latex": "b=4",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "2",
+                "color": "#2d70b3",
+                "latex": "a=\\frac{c}{b^{b}}e^{b}",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "4",
+                "color": "#000000",
+                "latex": "\\left(b,c\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "5",
+                "color": "#000000",
+                "latex": "c=4.68",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "6",
+                "color": "#000000",
+                "latex": "x=8\\left\\{y>0\\right\\}",
+                "lineStyle": "DASHED",
+                "lineOpacity": "1",
+                "lineWidth": "1"
+            },
+            {
+                "type": "expression",
+                "id": "8",
+                "color": "#000000",
+                "latex": "\\left(8.2,4\\right)",
+                "showLabel": true,
+                "label": "Activition Energy",
+                "hidden": true,
+                "labelSize": "0.9",
+                "labelOrientation": "below",
+                "pointOpacity": "0.8",
+                "labelAngle": "\\frac{\\pi}{2}"
+            }
+        ]
+    }
+})
+  
+  
+  c.setState({
+    "version": 10,
+    "randomSeed": "e785b8dbd3a3c8776de0f32b55ced91d",
+    "graph": {
+        "viewport": {
+            "xmin": 1,
+            "ymin": -6,
+            "xmax": 8.696860014235424,
+            "ymax": 10
+        },
+        "showGrid": false,
+        "showXAxis": false,
+        "showYAxis": false
+    },
+    "expressions": {
+        "list": [
+            {
+                "type": "folder",
+                "id": "24",
+                "title": "Initial Points",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "1",
+                "folderId": "24",
+                "color": "#000000",
+                "latex": "p_{1}=\\left(2,2\\right)",
+                "showLabel": true,
+                "label": "Cl",
+                "hidden": true,
+                "dragMode": "NONE",
+                "labelSize": "3"
+            },
+            {
+                "type": "expression",
+                "id": "5",
+                "folderId": "24",
+                "color": "#000000",
+                "latex": "p_{2}=\\left(4,2\\right)",
+                "showLabel": true,
+                "label": "S",
+                "hidden": true,
+                "labelSize": "3"
+            },
+            {
+                "type": "expression",
+                "id": "8",
+                "folderId": "24",
+                "color": "#000000",
+                "latex": "p_{3}=\\left(6,2\\right)",
+                "showLabel": true,
+                "label": "S",
+                "hidden": true,
+                "labelSize": "3"
+            },
+            {
+                "type": "expression",
+                "id": "9",
+                "folderId": "24",
+                "color": "#000000",
+                "latex": "p_{4}=\\left(8,2\\right)",
+                "showLabel": true,
+                "label": "Cl",
+                "hidden": true,
+                "labelSize": "3"
+            },
+            {
+                "type": "folder",
+                "id": "10",
+                "title": "Segments",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "20",
+                "folderId": "10",
+                "color": "#2d70b3",
+                "latex": "s_{eg}\\left(P_{1},T,t\\right)=\\left\\{T=0:\\left(P_{1}.x+.65+.7t,P_{1}.y\\right),\\left(P_{1}.x+.65+.7t,P_{1}.y+\\left[.1,-.1\\right]\\right)\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "21",
+                "folderId": "10",
+                "color": "#000000",
+                "latex": "s_{eg}\\left(p_{1},T_{1},t\\right)",
+                "lineWidth": "3"
+            },
+            {
+                "type": "expression",
+                "id": "25",
+                "folderId": "10",
+                "color": "#000000",
+                "latex": "s_{eg}\\left(p_{2},T_{2},t\\right)",
+                "lineWidth": "3"
+            },
+            {
+                "type": "expression",
+                "id": "26",
+                "folderId": "10",
+                "color": "#000000",
+                "latex": "s_{eg}\\left(p_{3},T_{3},t\\right)",
+                "lineWidth": "3"
+            },
+            {
+                "type": "text",
+                "id": "85",
+                "folderId": "10",
+                "text": "Clickable regions:"
+            },
+            {
+                "type": "expression",
+                "id": "29",
+                "folderId": "10",
+                "color": "#c74440",
+                "latex": "r_{egion}\\left(c\\right)=\\operatorname{polygon}\\left(c.x+.5\\cdot\\left[1,1,-1,-1\\right],c.y+.5\\cdot\\left[-1,1,1,-1\\right]\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "33",
+                "folderId": "10",
+                "color": "#2d70b3",
+                "latex": "r_{egion}\\left(\\left(3,2\\right)\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "T_{1}\\to\\operatorname{mod}\\left(T_{1}+1,2\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "34",
+                "folderId": "10",
+                "color": "#2d70b3",
+                "latex": "r_{egion}\\left(\\left(5,2\\right)\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "T_{2}\\to\\operatorname{mod}\\left(T_{2}+1,2\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "36",
+                "folderId": "10",
+                "color": "#2d70b3",
+                "latex": "r_{egion}\\left(\\left(7,2\\right)\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "T_{3}\\to\\operatorname{mod}\\left(T_{3}+1,2\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "18",
+                "folderId": "10",
+                "color": "#000000",
+                "latex": "T_{1}=0",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "35",
+                "folderId": "10",
+                "color": "#2d70b3",
+                "latex": "T_{2}=0",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "37",
+                "folderId": "10",
+                "color": "#6042a6",
+                "latex": "T_{3}=0",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "1"
+                }
+            },
+            {
+                "type": "folder",
+                "id": "38",
+                "title": "Dots",
+                "collapsed": true
+            },
+            {
+                "type": "text",
+                "id": "87",
+                "folderId": "38",
+                "text": "Clickable regions:"
+            },
+            {
+                "type": "expression",
+                "id": "2",
+                "folderId": "38",
+                "color": "#2d70b3",
+                "latex": "p_{oly}\\left(p\\right)=\\operatorname{polygon}\\left(p+.5\\left(\\left[-1,1,1,-1\\right],\\left[-1,-1,1,1\\right]\\right)\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "66",
+                "folderId": "38",
+                "color": "#c74440",
+                "latex": "p_{oly}\\left(p_{1}\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "c_{1}\\to\\operatorname{mod}\\left(c_{1}+1,7\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "3",
+                "folderId": "38",
+                "color": "#c74440",
+                "latex": "p_{oly}\\left(p_{2}\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "c_{2}\\to\\operatorname{mod}\\left(c_{2}+1,5\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "76",
+                "folderId": "38",
+                "color": "#c74440",
+                "latex": "p_{oly}\\left(p_{3}\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "c_{3}\\to\\operatorname{mod}\\left(c_{3}+1,5\\right)"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "80",
+                "folderId": "38",
+                "color": "#c74440",
+                "latex": "p_{oly}\\left(p_{4}\\right)",
+                "lines": false,
+                "fillOpacity": "0",
+                "clickableInfo": {
+                    "enabled": true,
+                    "latex": "c_{4}\\to\\operatorname{mod}\\left(c_{4}+1,7\\right)"
+                }
+            },
+            {
+                "type": "text",
+                "id": "89",
+                "folderId": "38",
+                "text": "# of dots on each element:"
+            },
+            {
+                "type": "expression",
+                "id": "62",
+                "folderId": "38",
+                "color": "#6042a6",
+                "latex": "c_{1}=6",
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "7",
+                    "step": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "73",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "c_{2}=4",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "5",
+                    "step": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "75",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "c_{3}=4",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "5",
+                    "step": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "79",
+                "folderId": "38",
+                "color": "#6042a6",
+                "latex": "c_{4}=0",
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "7",
+                    "step": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "70",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "p_{1}+\\left\\{c_{1}=1:\\operatorname{join}\\left(D_{ots1}\\left[1\\right],\\left[\\right]\\right),c_{1}=2:D_{ots1}\\left[1,2\\right],c_{1}=3:D_{ots1}\\left[2,4,5\\right],c_{1}=4:D_{ots1}\\left[4,5,6,7\\right],c_{1}=5:D_{ots1}\\left[3,4,5,6,7\\right],c_{1}=6:D_{ots1}\\left[4...9\\right],\\left[\\right]\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "68",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "p_{2}+\\left\\{c_{2}=1:\\operatorname{join}\\left(D_{ots2}\\left[1\\right],\\left[\\right]\\right),c_{2}=2:D_{ots2}\\left[1,2\\right],c_{2}=3:D_{ots2}\\left[2,3,4\\right],c_{2}=4:D_{ots2}\\left[3,4,5,6\\right],\\left[\\right]\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "74",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "p_{3}+\\left\\{c_{3}=1:\\operatorname{join}\\left(D_{ots2}\\left[1\\right],\\left[\\right]\\right),c_{3}=2:D_{ots2}\\left[1,2\\right],c_{3}=3:D_{ots2}\\left[2,3,4\\right],c_{3}=4:D_{ots2}\\left[3,4,5,6\\right],\\left[\\right]\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "78",
+                "folderId": "38",
+                "color": "#000000",
+                "latex": "p_{4}+\\left\\{c_{4}=1:\\operatorname{join}\\left(D_{ots3}\\left[1\\right],\\left[\\right]\\right),c_{4}=2:D_{ots3}\\left[1,2\\right],c_{4}=3:D_{ots3}\\left[2,4,5\\right],c_{4}=4:D_{ots3}\\left[4,5,6,7\\right],c_{4}=5:D_{ots3}\\left[3,4,5,6,7\\right],c_{4}=6:D_{ots3}\\left[4...9\\right],\\left[\\right]\\right\\}"
+            },
+            {
+                "type": "expression",
+                "id": "69",
+                "folderId": "38",
+                "color": "#c74440",
+                "latex": "D_{ots1}=\\left[\\left(0,.5\\right),\\left(0,-.5\\right),\\left(-.5,0\\right),\\left(-.15,.5\\right),\\left(.15,.5\\right),\\left(-.15,-.5\\right),\\left(.15,-.5\\right),\\left(-.5,-.15\\right),\\left(-.5,.15\\right)\\right]",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "71",
+                "folderId": "38",
+                "color": "#388c46",
+                "latex": "D_{ots2}=\\left[\\left(0,.5\\right),\\left(0,-.5\\right),\\left(-.15,.5\\right),\\left(.15,.5\\right),\\left(-.15,-.5\\right),\\left(.15,-.5\\right)\\right]",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "77",
+                "folderId": "38",
+                "color": "#2d70b3",
+                "latex": "D_{ots3}=\\left[\\left(0,.5\\right),\\left(0,-.5\\right),\\left(.5,0\\right),\\left(-.15,.5\\right),\\left(.15,.5\\right),\\left(-.15,-.5\\right),\\left(.15,-.5\\right),\\left(.5,-.15\\right),\\left(.5,.15\\right)\\right]",
+                "hidden": true
+            },
+            {
+                "type": "folder",
+                "id": "83",
+                "title": "Labels",
+                "hidden": true,
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "72",
+                "folderId": "83",
+                "color": "#000000",
+                "latex": "\\left(5,5\\right)",
+                "showLabel": true,
+                "label": "Click each element to add dots",
+                "hidden": true,
+                "labelSize": "1.5"
+            },
+            {
+                "type": "expression",
+                "id": "81",
+                "folderId": "83",
+                "color": "#000000",
+                "latex": "\\left(5,4\\right)",
+                "showLabel": true,
+                "label": "Click the connecting bond to adjust style",
+                "hidden": true,
+                "labelSize": "1.5"
+            }
+        ]
+    }
+})
+  </script>
+
+</body>
+</html>
