@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  <title>Imagine Learning Demo, December 2023</title>
+  <title>Imagine Learning, December 2023</title>
 </head>
 <body>
 
@@ -20,8 +20,8 @@
     This example adds a little code to connect a <a href="https://www.desmos.com/geometry/fatcx9vm0r">construction</a> with a <a href="https://www.desmos.com/3d/849d1f4aff">3D plot</a>:
   </p>
   <div class="calc-containers">
-    <div id="calculator" style="width: 500px; height: 450px;">
-    </div><div id="calc2" style="width: 500px; height: 450px;"></div>
+    <div id="revolution-geo" style="width: 500px; height: 450px;">
+    </div><div id="revolution-3d" style="width: 500px; height: 450px;"></div>
   </div>
   
   <style>
@@ -52,14 +52,6 @@
   </style>
   
 <script>
-  var calculator = Desmos.Geometry(document.getElementById('calculator'), {
-    expressions: false,
-    hideGeoUI: true,
-    settingsMenu: false,
-    lockViewport: true,
-    branding: false
-  });
-  
   var thermometer = Desmos.Geometry(document.getElementById('thermometer'), {
     expressions: false,
     hideGeoUI: true,
@@ -67,13 +59,21 @@
     lockViewport: true,
     branding: false
   });
-  
-  var calc2 = Desmos.Calculator3d(document.getElementById('calc2'), {
+
+  var revolutionGeo = Desmos.Geometry(document.getElementById('revolution-geo'), {
     expressions: false,
     hideGeoUI: true,
     settingsMenu: false,
     lockViewport: true,
     branding: false
+  });
+  
+  
+  var revolution3d = Desmos.Calculator3d(document.getElementById('revolution-3d'), {
+    expressions: false,
+    hideGeoUI: true,
+    settingsMenu: false,
+    branding: false,
   });
   
   thermometer.setState({
@@ -569,7 +569,7 @@
     }
 })
   
-  calculator.setState({
+  revolutionGeo.setState({
     "version": 11,
     "randomSeed": "b94ed6b244c6a7aaadf0e30d79f6004a",
     "graph": {
@@ -753,7 +753,7 @@
     }
 })
   
-  calc2.setState({
+  revolution3d.setState({
     "version": 11,
     "randomSeed": "a4a9005b8f2e6813dc2d9a93a30c402b",
     "graph": {
@@ -765,6 +765,7 @@
             "ymax": 3,
             "zmax": 3
         },
+        "userLockedViewport": true,
         "threeDMode": true,
         "worldRotation3D": [
             -0.5132799671593364,
@@ -996,9 +997,9 @@
 });
   
   function hookupHelper(name, id) {
-    var helper = calculator.HelperExpression({ latex: name });
+    var helper = revolutionGeo.HelperExpression({ latex: name });
     helper.observe('numericValue', function() {
-      calc2.setExpression({
+      revolution3d.setExpression({
         latex: name + "=" + helper.numericValue,
         id: id
       })
