@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+</head>
+<body>
+
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <script src="https://www.desmos.com/api/v1.9/calculator-3d.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <div class="calc-containers">
+    <div id="calculator" style="width: 600px; height: 450px;">
+    </div><div id="calc2" style="width: 600px; height: 450px;"></div>
+  </div>
+  
+  <style>
+    .calc-containers {
+      display: flex;
+      min-width: 500px;
+    }
+  </style>
+  
+<script>
+  var calculator = Desmos.Geometry(document.getElementById('calculator'), {
+    expressions: false,
+    hideGeoUI: true,
+    settingsMenu: false,
+    lockViewport: true,
+    branding: false
+  });
+  
+  var calc2 = Desmos.Calculator3d(document.getElementById('calc2'), {
+    expressions: false,
+    hideGeoUI: true,
+    settingsMenu: false,
+    lockViewport: true,
+    branding: false
+  });
+  
+  calculator.setState({
+    "version": 11,
+    "randomSeed": "b94ed6b244c6a7aaadf0e30d79f6004a",
+    "graph": {
+        "viewport": {
+            "xmin": -1,
+            "ymin": -3.1485849056603774,
+            "xmax": 5,
+            "ymax": 3.1485849056603774
+        },
+        "degreeMode": true,
+        "product": "geometry-calculator"
+    },
+    "expressions": {
+        "list": [
+            {
+                "type": "folder",
+                "id": "**dcg_geo_folder**",
+                "title": "geometry",
+                "secret": true
+            },
+            {
+                "type": "expression",
+                "id": "2",
+                "folderId": "**dcg_geo_folder**",
+                "color": "#6042a6",
+                "latex": "\\token{2}=\\operatorname{polygon}\\left(p_2,p_3,p_4\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "13",
+                "folderId": "**dcg_geo_folder**",
+                "color": "#6042a6",
+                "latex": "\\token{13}=\\left(1.416,-1.4\\right)",
+                "hidden": true
+            },
+            {
+                "type": "expression",
+                "id": "12",
+                "folderId": "**dcg_geo_folder**",
+                "color": "#000000",
+                "latex": "\\token{12}=\\operatorname{segment}\\left(\\token{13},\\token{15}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "15",
+                "folderId": "**dcg_geo_folder**",
+                "color": "#6042a6",
+                "latex": "\\token{15}=\\left(3.616,-1.4\\right)",
+                "hidden": true
+            },
+            {
+                "type": "folder",
+                "id": "32",
+                "title": "Points defining the triangle",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "5",
+                "folderId": "32",
+                "color": "#6042a6",
+                "latex": "p_{4}=\\left(A,0\\right)",
+                "dragMode": "X"
+            },
+            {
+                "type": "expression",
+                "id": "27",
+                "folderId": "32",
+                "color": "#388c46",
+                "latex": "A=1",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "4"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "3",
+                "folderId": "32",
+                "color": "#6042a6",
+                "latex": "p_{2}=\\left(B,0\\right)",
+                "dragMode": "X"
+            },
+            {
+                "type": "expression",
+                "id": "28",
+                "folderId": "32",
+                "color": "#6042a6",
+                "latex": "B=4",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "A+.5",
+                    "max": "4.5"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "4",
+                "folderId": "32",
+                "color": "#6042a6",
+                "latex": "p_{3}=\\left(C,\\ D\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "29",
+                "folderId": "32",
+                "color": "#000000",
+                "latex": "C=1",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "4.5"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "30",
+                "folderId": "32",
+                "color": "#c74440",
+                "latex": "D=1.016",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "2.5"
+                }
+            },
+            {
+                "type": "folder",
+                "id": "34",
+                "title": "Points defining rotation angle",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "21",
+                "folderId": "34",
+                "color": "#000000",
+                "latex": "p_{1}=\\operatorname{glider}\\left(\\token{12},a\\right)",
+                "showLabel": true,
+                "label": "`\\space${d}°`",
+                "labelOrientation": "above"
+            },
+            {
+                "type": "expression",
+                "id": "26",
+                "folderId": "34",
+                "color": "#2d70b3",
+                "latex": "a=0",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "1"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "1",
+                "folderId": "34",
+                "color": "#c74440",
+                "latex": "d=\\operatorname{round}\\left(360a\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "36",
+                "folderId": "34",
+                "color": "#c74440",
+                "latex": "R=2\\pi\\cdot a"
+            }
+        ]
+    }
+})
+  
+  calc2.setState({
+    "version": 11,
+    "randomSeed": "a4a9005b8f2e6813dc2d9a93a30c402b",
+    "graph": {
+        "viewport": {
+            "xmin": -1,
+            "ymin": -3,
+            "zmin": -3,
+            "xmax": 5,
+            "ymax": 3,
+            "zmax": 3
+        },
+        "threeDMode": true,
+        "worldRotation3D": [
+            -0.5132799671593364,
+            -0.8314696123025455,
+            -0.212607523691814,
+            0.7681777567114166,
+            -0.555570233019602,
+            0.3181896451432085,
+            -0.3826834323650897,
+            0,
+            0.9238795325112867
+        ],
+        "axis3D": [
+            0,
+            0,
+            -1.0000000000008726
+        ],
+        "product": "graphing-3d"
+    },
+    "expressions": {
+        "list": [
+            {
+                "type": "expression",
+                "id": "8",
+                "color": "#388c46",
+                "latex": "R=0",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "2\\pi"
+                }
+            },
+            {
+                "type": "folder",
+                "id": "50",
+                "title": "Variables for the base triangle",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "42",
+                "folderId": "50",
+                "color": "#388c46",
+                "latex": "A=1",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "4"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "44",
+                "folderId": "50",
+                "color": "#aaaaaa",
+                "latex": "B=4",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "min": "A+.5",
+                    "max": "10"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "46",
+                "folderId": "50",
+                "color": "#2d70b3",
+                "latex": "C=1",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "4.5"
+                }
+            },
+            {
+                "type": "expression",
+                "id": "47",
+                "folderId": "50",
+                "color": "#388c46",
+                "latex": "D=1",
+                "hidden": true,
+                "slider": {
+                    "hardMin": true,
+                    "hardMax": true,
+                    "min": "0",
+                    "max": "2.5"
+                }
+            },
+            {
+                "type": "folder",
+                "id": "66",
+                "title": "Show points",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "41",
+                "folderId": "66",
+                "color": "#6042a6",
+                "latex": "p_{1}=\\left(A,0,0\\right)",
+                "pointSize": "2"
+            },
+            {
+                "type": "expression",
+                "id": "43",
+                "folderId": "66",
+                "color": "#6042a6",
+                "latex": "p_{2}=\\left(B,0,0\\right)",
+                "pointSize": "2"
+            },
+            {
+                "type": "expression",
+                "id": "45",
+                "folderId": "66",
+                "color": "#6042a6",
+                "latex": "p_{3}=\\left(C,D,0\\right)",
+                "pointSize": "2"
+            },
+            {
+                "type": "expression",
+                "id": "56",
+                "folderId": "66",
+                "color": "#6042a6",
+                "latex": "p_{4}=\\left(C,\\ D\\cos R,\\ D\\sin R\\right)",
+                "pointSize": "2"
+            },
+            {
+                "type": "folder",
+                "id": "68",
+                "title": "Show segments",
+                "collapsed": true
+            },
+            {
+                "type": "expression",
+                "id": "57",
+                "folderId": "68",
+                "color": "#6042a6",
+                "latex": "\\operatorname{segment}\\left(p_{1},\\ p_{4}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "58",
+                "folderId": "68",
+                "color": "#6042a6",
+                "latex": "\\operatorname{segment}\\left(p_{2},\\ p_{4}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "59",
+                "folderId": "68",
+                "color": "#6042a6",
+                "latex": "\\operatorname{segment}\\left(p_{1},\\ p_{3}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "60",
+                "folderId": "68",
+                "color": "#6042a6",
+                "latex": "\\operatorname{segment}\\left(p_{2},\\ p_{3}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "61",
+                "folderId": "68",
+                "color": "#6042a6",
+                "latex": "\\operatorname{segment}\\left(p_{1},\\ p_{2}\\right)"
+            },
+            {
+                "type": "folder",
+                "id": "52",
+                "title": "Draw rotations",
+                "collapsed": true
+            },
+            {
+                "type": "text",
+                "id": "54",
+                "folderId": "52",
+                "text": "This is the path that point p3 follows:"
+            },
+            {
+                "type": "expression",
+                "id": "40",
+                "folderId": "52",
+                "color": "#6042a6",
+                "latex": "\\left(C,\\ D\\cos t,\\ D\\sin t\\right)\\ \\operatorname{for}\\ 0<t<R"
+            },
+            {
+                "type": "expression",
+                "id": "55",
+                "folderId": "52",
+                "color": "#6042a6",
+                "latex": "\\left(Cu+B\\left(1-u\\right),\\ Du\\cos t,\\ Du\\sin t\\right)\\ \\operatorname{for}\\ 0<t<R,\\ 0<u<1"
+            },
+            {
+                "type": "expression",
+                "id": "69",
+                "folderId": "52",
+                "color": "#6042a6",
+                "latex": "\\left(Cu+A\\left(1-u\\right),\\ Du\\cos t,\\ Du\\sin t\\right)\\ \\operatorname{for}\\ 0<t<R,\\ 0<u<1"
+            },
+            {
+                "type": "expression",
+                "id": "62",
+                "folderId": "52",
+                "color": "#6042a6",
+                "latex": "\\operatorname{triangle}\\left(p_{1},\\ p_{2},\\ p_{4}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "48",
+                "folderId": "52",
+                "color": "#6042a6",
+                "latex": "\\operatorname{triangle}\\left(p_{1},\\ p_{2},\\ p_{3}\\right)"
+            },
+            {
+                "type": "expression",
+                "id": "70",
+                "color": "#c74440"
+            }
+        ]
+    }
+});
+  
+  function hookupHelper(name, id) {
+    var helper = calculator.HelperExpression({ latex: name });
+    helper.observe('numericValue', function() {
+      calc2.setExpression({
+        latex: name + "=" + helper.numericValue,
+        id: id
+      })
+    });
+  }
+  
+  hookupHelper("A", "42");
+  hookupHelper("B", "44");
+  hookupHelper("C", "46");
+  hookupHelper("D", "47");
+  hookupHelper("R", "8");
+
+  
+  </script>
+  
+</body>
+</html>
