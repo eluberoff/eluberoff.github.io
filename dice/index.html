@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disappearing Dice</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #gameContainer {
+            text-align: center;
+            background: #333;
+            padding: min(40px, 5vw);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            margin: 0 auto;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2px;
+            width: min(80vw, 400px);
+            height: min(80vw, 400px);
+            margin: 20px auto;
+            background: #444;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .cell {
+            background: #555;
+            border: 1px solid #666;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 4px;
+            min-height: 44px; /* Minimum touch target size */
+            transition: all 0.2s ease;
+        }
+        .cell.inner {
+            background: #555;
+        }
+        .dice {
+            background: white;
+            color: black;
+            border-radius: 6px;
+            width: min(50px, 10vw);
+            height: min(50px, 10vw);
+            min-width: 44px; /* Minimum touch target size */
+            min-height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: min(20px, 4vw);
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: none; /* Prevent default touch behaviors */
+            user-select: none; /* Prevent text selection */
+        }
+        .dice:focus {
+            outline: 2px solid #2196f3;
+            outline-offset: 2px;
+        }
+        .dice.shadow {
+            opacity: 0.25;
+            pointer-events: none;
+            background: #ccc;
+        }
+        .dice.bouncing {
+            animation: bounce 0.3s ease-in-out;
+        }
+        .dice.destroying {
+            animation: destroy 0.8s ease-in-out forwards;
+        }
+        .dice:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        .dice.selected {
+            background: #ffeb3b;
+            color: black;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.6);
+        }
+        .dice.game-over {
+            background: #e0e0e0;
+            color: #666;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: default;
+            transform: none !important;
+        }
+        .dice.game-over:hover {
+            transform: none !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .cell.current-position {
+            background: #ff9800 !important;
+            border: 2px solid #f57c00;
+        }
+        .cell.current-position:hover {
+            background: #ff9800 !important;
+        }
+        #gameStatus {
+            margin: 10px 0;
+            font-size: 18px;
+            height: 24px;
+        }
+        .button-container {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .game-btn {
+            border: none;
+            padding: 12px 24px;
+            min-height: 44px; /* Minimum touch target size */
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            touch-action: manipulation; /* Improve touch responsiveness */
+        }
+        .game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .game-btn:active {
+            transform: scale(0.98);
+        }
+        .reset-btn {
+            background: #4caf50;
+        }
+        .reset-btn:hover {
+            background: #45a049;
+        }
+        .new-game-btn {
+            background: #2196f3;
+        }
+        .new-game-btn:hover {
+            background: #1976d2;
+        }
+        .share-btn {
+            background: #9c27b0;
+        }
+        .share-btn:hover {
+            background: #7b1fa2;
+        }
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        @keyframes destroy {
+            0% { 
+                transform: scale(1) rotate(0deg); 
+                opacity: 1; 
+                background: white;
+            }
+            25% { 
+                transform: scale(1.2) rotate(90deg); 
+                background: #ff4444;
+            }
+            50% { 
+                transform: scale(0.8) rotate(180deg); 
+                background: #ff6666;
+            }
+            75% { 
+                transform: scale(1.1) rotate(270deg); 
+                background: #ff8888;
+                opacity: 0.5;
+            }
+            100% { 
+                transform: scale(0) rotate(360deg); 
+                opacity: 0; 
+            }
+        }
+        
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            #gameContainer {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin: 0 0 20px 0;
+            }
+            
+            #gameStatus {
+                font-size: 16px;
+            }
+            
+            .button-container {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            .game-btn {
+                width: 100%;
+                max-width: 200px;
+                padding: 16px 20px;
+                font-size: 16px;
+            }
+            
+            /* Larger touch targets on mobile */
+            .dice {
+                min-width: 50px;
+                min-height: 50px;
+                font-size: 22px;
+            }
+            
+            .cell {
+                min-height: 50px;
+            }
+            
+        }
+        
+        /* Very small screens */
+        @media (max-width: 480px) {
+            #grid {
+                width: 85vw;
+                height: 85vw;
+                margin: 15px auto;
+            }
+            
+            .dice {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>Disappearing Dice</h1>
+        <div id="gameContent"></div>
+    </div>
+    <script type="module" src="game.js"></script>
+</body>
+</html>
