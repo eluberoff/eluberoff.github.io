@@ -1,16 +1,17 @@
 "use strict";
+
 class Game {
     constructor() {
         this.grid = Array(5).fill(null).map(() => Array(5).fill(0));
         this.dice = [];
         this.initialDice = []; // Store original configuration for reset
         this.gameState = {
-            selectedDice: null,
+            selectedDie: null,
             movesRemaining: 0,
-            startPosition: null,
-            animating: false,
             dragging: false,
-            dragStartPosition: null
+            transientTile: null, // Tracks the moving tile's current position without modifying original dice
+            inputMethod: null, // 'keyboard' or 'pointer' - tracks how current move was initiated
+            delayGameOverCheck: false // Delay game over overlay until animations complete
         };
         this.gameContainer = document.getElementById('gameContent');
         this.init();
@@ -65,52 +66,107 @@ class Game {
     render() {
         let statusHTML = `<div id="gameStatus">${this.getStatusMessage()}</div>`;
         let gridHTML = '<div id="grid">';
+        
+        // Get valid moves for current transient tile
+        const validMoves = this.gameState.transientTile && this.gameState.movesRemaining > 0 
+            ? this.getValidMoves(this.gameState.transientTile.position, this.gameState.movesRemaining) 
+            : [];
+        
         for (let row = 0; row < 5; row++) {
             for (let col = 0; col < 5; col++) {
                 const position = row * 5 + col;
                 const isInner = this.isInnerCell(row, col);
                 const dice = this.getDiceAtPosition(position);
                 let cellClasses = ['cell'];
-                if (isInner)
-                    cellClasses.push('inner');
+                
+                if (isInner) cellClasses.push('inner');
+                
                 // Add visual indicators for game state
-                if (this.gameState.selectedDice && position === this.gameState.selectedDice.position) {
+                if (this.gameState.selectedDie && position === this.gameState.selectedDie.position) {
                     cellClasses.push('current-position');
                 }
+                
+                // Show valid move indicators for empty squares
+                if (validMoves.includes(position) && !dice) {
+                    cellClasses.push('valid-move');
+                }
+                
                 let cellContent = '';
-                if (dice) {
-                    const isSelected = this.gameState.selectedDice?.id === dice.id;
-                    const isGameOver = this.isGameOver();
+                
+                // Show transient tile if it's at this position
+                if (this.gameState.transientTile && this.gameState.transientTile.position === position) {
+                    const isSelected = this.gameState.selectedDie?.id === this.gameState.transientTile.originalDiceId;
                     const classes = ['dice'];
-                    if (isSelected)
-                        classes.push('selected');
-                    if (isGameOver)
-                        classes.push('game-over');
-                    cellContent = `<div class="${classes.join(' ')}" data-dice-id="${dice.id}" tabindex="0">${dice.value}</div>`;
+                    if (isSelected) classes.push('selected');
+                    cellContent = `<div class="${classes.join(' ')}" data-dice-id="${this.gameState.transientTile.originalDiceId}" tabindex="0">${this.gameState.transientTile.value}</div>`;
+                } 
+                // Show original dice if no transient tile is here
+                else if (dice) {
+                    // Don't show the original dice if the transient tile has moved away from it
+                    const isOriginalPosition = !this.gameState.transientTile || 
+                        this.gameState.transientTile.originalDiceId !== dice.id ||
+                        this.gameState.transientTile.position === dice.position;
+                    
+                    if (isOriginalPosition) {
+                        const isSelected = this.gameState.selectedDie?.id === dice.id;
+                        const classes = ['dice'];
+                        if (isSelected) classes.push('selected');
+                        cellContent = `<div class="${classes.join(' ')}" data-dice-id="${dice.id}" tabindex="0">${dice.value}</div>`;
+                    }
                 }
+                
                 // Add shadow dice at start position if dice is moving
-                if (this.gameState.selectedDice &&
-                    this.gameState.startPosition === position &&
-                    this.gameState.selectedDice.position !== position &&
-                    this.gameState.movesRemaining < this.gameState.selectedDice.value) {
-                    cellContent += `<div class="dice shadow">${this.gameState.selectedDice.value}</div>`;
+                if (this.gameState.selectedDie &&
+                    this.gameState.selectedDie.position === position &&
+                    this.gameState.transientTile &&
+                    this.gameState.transientTile.position !== position &&
+                    this.gameState.movesRemaining < this.gameState.selectedDie.value) {
+                    cellContent += `<div class="dice shadow">${this.gameState.selectedDie.value}</div>`;
                 }
+                
                 gridHTML += `<div class="${cellClasses.join(' ')}" data-position="${position}">${cellContent}</div>`;
             }
         }
+        // Add game over overlay (always present but hidden initially)
+        const isGameOverState = this.isGameOver() && !this.gameState.delayGameOverCheck;
+        if (isGameOverState) {
+            const finalScore = this.getFinalScore();
+            const finalDiceHTML = this.dice.map(dice => 
+                `<div class="final-dice">${dice.value}</div>`
+            ).join('');
+            
+            gridHTML += `
+                <div id="gameOverOverlay">
+                    <div class="game-over-score">Your score: ${finalScore}</div>
+                    <div class="final-dice-container">${finalDiceHTML}</div>
+                </div>
+            `;
+        }
+        
         gridHTML += '</div>';
+        
         // Always show buttons
         const buttonsHTML = `
             <div class="button-container">
-                <button id="resetButton" class="game-btn reset-btn">Reset Game</button>
-                <button id="newGameButton" class="game-btn new-game-btn">New Game</button>
-                <button id="shareButton" class="game-btn share-btn">Share Puzzle</button>
+                <button id="resetButton" class="game-btn reset-btn">Reset</button>
+                <button id="newGameButton" class="game-btn new-game-btn">New</button>
+                <button id="shareButton" class="game-btn share-btn">Share</button>
             </div>
         `;
         this.gameContainer.innerHTML = statusHTML + gridHTML + buttonsHTML;
-        this.attachDiceListeners();
+        this.attachSquareListeners();
         this.attachButtonListeners();
         this.cleanupAnimationClasses();
+        
+        // Animate game over overlay if game is over
+        if (isGameOverState) {
+            setTimeout(() => {
+                const overlay = document.getElementById('gameOverOverlay');
+                if (overlay) {
+                    overlay.classList.add('show');
+                }
+            }, 100); // Quick delay to let the final state be visible first
+        }
     }
     attachButtonListeners() {
         const resetButton = document.getElementById('resetButton');
@@ -136,24 +192,24 @@ class Game {
         // Reset dice to initial configuration
         this.dice = this.initialDice.map(dice => ({ ...dice }));
         // Reset game state
-        this.gameState.selectedDice = null;
+        this.gameState.selectedDie = null;
         this.gameState.movesRemaining = 0;
-        this.gameState.startPosition = null;
-        this.gameState.animating = false;
         this.gameState.dragging = false;
-        this.gameState.dragStartPosition = null;
+        this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
         this.render();
     }
     startNewGame() {
         // Generate completely new dice configuration
         this.placeDice();
         // Reset game state
-        this.gameState.selectedDice = null;
+        this.gameState.selectedDie = null;
         this.gameState.movesRemaining = 0;
-        this.gameState.startPosition = null;
-        this.gameState.animating = false;
         this.gameState.dragging = false;
-        this.gameState.dragStartPosition = null;
+        this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
         // Clear URL parameters for new game
         this.clearUrlParameters();
         this.render();
@@ -271,6 +327,7 @@ class Game {
     }
     cleanupAnimationClasses() {
         // Remove any leftover animation classes from all dice
+        // Note: Don't remove 'spinning' here as it's managed by animateReplacement
         const allDice = document.querySelectorAll('.dice');
         allDice.forEach(dice => {
             dice.classList.remove('destroying', 'bouncing');
@@ -278,7 +335,7 @@ class Game {
     }
     getStatusMessage() {
         // Don't check game over while a dice is actively moving
-        if (this.gameState.selectedDice && this.gameState.movesRemaining < this.gameState.selectedDice.value) {
+        if (this.gameState.selectedDie && this.gameState.movesRemaining < this.gameState.selectedDie.value) {
             return `Moves remaining: ${this.gameState.movesRemaining}`;
         }
         // Only check game over in stable states (no dice selected or dice selected but no moves made)
@@ -286,7 +343,7 @@ class Game {
             const finalScore = this.getFinalScore();
             return `Game Over! Final Score: ${finalScore}`;
         }
-        if (this.gameState.selectedDice) {
+        if (this.gameState.selectedDie) {
             return `Moves remaining: ${this.gameState.movesRemaining}`;
         }
         return 'Click a die to start!';
@@ -300,21 +357,17 @@ class Game {
                 this.cycleThroughDice();
                 return;
             }
-            if (e.key === 'Escape' && this.gameState.selectedDice) {
-                // If no moves have been made, just deselect
-                if (this.gameState.movesRemaining === this.gameState.selectedDice.value) {
-                    this.gameState.selectedDice = null;
-                    this.gameState.movesRemaining = 0;
-                    this.gameState.startPosition = null;
-                    this.render();
-                }
-                else {
-                    // If moves have been made, return to start
-                    this.returnToStart();
-                }
+            if (e.key === 'Escape' && this.gameState.selectedDie) {
+                // Reset all game state (die is already at start position)
+                this.gameState.selectedDie = null;
+                this.gameState.movesRemaining = 0;
+                this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+                this.render();
                 return;
             }
-            if (this.gameState.selectedDice && this.gameState.movesRemaining > 0) {
+            if (this.gameState.selectedDie && this.gameState.movesRemaining > 0) {
                 let direction = null;
                 switch (e.key) {
                     case 'ArrowUp':
@@ -332,6 +385,7 @@ class Game {
                 }
                 if (direction) {
                     e.preventDefault();
+                    this.gameState.inputMethod = 'keyboard';
                     this.moveOneStep(direction);
                 }
             }
@@ -343,7 +397,7 @@ class Game {
             return;
         }
         // Only allow tab cycling if no moves have been made with current dice
-        if (this.gameState.selectedDice && this.gameState.movesRemaining < this.gameState.selectedDice.value) {
+        if (this.gameState.selectedDie && this.gameState.movesRemaining < this.gameState.selectedDie.value) {
             return; // Dice has already moved
         }
         // Sort dice by ID for consistent ordering
@@ -351,200 +405,250 @@ class Game {
         if (sortedDice.length === 0)
             return;
         let nextIndex = 0;
-        if (this.gameState.selectedDice) {
-            const currentIndex = sortedDice.findIndex(d => d.id === this.gameState.selectedDice.id);
+        if (this.gameState.selectedDie) {
+            const currentIndex = sortedDice.findIndex(d => d.id === this.gameState.selectedDie.id);
             nextIndex = (currentIndex + 1) % sortedDice.length;
         }
         const nextDice = sortedDice[nextIndex];
         this.selectDice(nextDice.id);
     }
-    attachDiceListeners() {
+    attachSquareListeners() {
+        const squares = document.querySelectorAll('.cell');
+        squares.forEach(square => {
+            // Attach unified interaction handler to each square
+            this.attachInteractionHandler(square);
+        });
+        
+        // Attach accessibility listeners to dice
         const diceElements = document.querySelectorAll('.dice');
         diceElements.forEach(diceEl => {
-            const element = diceEl;
-            // Handle click events
-            element.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const diceId = element.dataset.diceId;
-                if (diceId && !this.gameState.dragging) {
-                    // Check if we should move to this dice instead of selecting it
-                    if (this.gameState.selectedDice &&
-                        this.gameState.movesRemaining === 1 &&
-                        this.gameState.selectedDice.id !== diceId) {
-                        const targetDice = this.dice.find(d => d.id === diceId);
-                        if (targetDice && this.isValidMoveDestination(targetDice.position)) {
-                            const currentPosition = this.gameState.selectedDice.position;
-                            const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
-                            const [targetRow, targetCol] = this.positionToRowCol(targetDice.position);
-                            const rowDiff = targetRow - currentRow;
-                            const colDiff = targetCol - currentCol;
-                            const direction = [
-                                rowDiff === 0 ? 0 : (rowDiff > 0 ? 1 : -1),
-                                colDiff === 0 ? 0 : (colDiff > 0 ? 1 : -1)
-                            ];
-                            this.moveOneStep(direction);
-                            return;
-                        }
-                    }
-                    this.selectDice(diceId);
-                }
-            });
-            // Handle keyboard events for accessibility
-            element.addEventListener('keydown', (e) => {
-                const keyEvent = e;
-                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+            diceEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     e.stopPropagation();
-                    const diceId = element.dataset.diceId;
+                    const diceId = diceEl.dataset.diceId;
                     if (diceId) {
                         this.selectDice(diceId);
                     }
                 }
             });
-            // Add drag functionality
-            this.attachDragListeners(element);
         });
     }
-    attachDragListeners(element) {
+    
+    attachInteractionHandler(element) {
         let startX, startY;
         let isDragging = false;
         let moveHandler;
         let endHandler;
+        
         const handleStart = (e) => {
-            if (this.isGameOver())
+            if (this.isGameOver() || this.gameState.dragging) {
                 return;
-            const diceId = element.dataset.diceId;
-            if (!diceId)
-                return;
-            // Select the dice first
-            this.selectDice(diceId);
-            if (e instanceof TouchEvent) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
             }
-            else {
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const position = parseInt(element.dataset.position);
+            if (isNaN(position)) {
+                return;
+            }
+            
+            // Priority 1: Check for capture attempt (final move landing on adjacent dice)
+            if (this.gameState.transientTile && this.gameState.movesRemaining === 1) {
+                const targetDice = this.getDiceAtPosition(position);
+                if (targetDice && targetDice.id !== this.gameState.selectedDie?.id) {
+                    // Check if this is an adjacent move before attempting capture
+                    const currentPosition = this.gameState.transientTile.position;
+                    const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
+                    const [targetRow, targetCol] = this.positionToRowCol(position);
+                    const rowDiff = targetRow - currentRow;
+                    const colDiff = targetCol - currentCol;
+                    const distance = Math.abs(rowDiff) + Math.abs(colDiff);
+                    
+                    if (distance === 1) {
+                        // This is a valid adjacent capture attempt
+                        this.gameState.inputMethod = 'pointer';
+                        if (this.moveToPosition(position)) {
+                            return; // Successful capture move, no need for drag setup
+                        }
+                    }
+                }
+            }
+            
+            // Priority 2: Check for valid move to empty square
+            if (this.gameState.transientTile && this.gameState.movesRemaining > 0) {
+                const diceAtPosition = this.getDiceAtPosition(position);
+                if (!diceAtPosition) {
+                    // Empty square - try to move there
+                    this.gameState.inputMethod = 'pointer';
+                    if (this.moveToPosition(position)) {
+                        return; // Successful move, no need for drag setup
+                    }
+                }
+            }
+            
+            // Priority 3: Check for dice selection
+            const diceAtPosition = this.getDiceAtPosition(position);
+            if (diceAtPosition) {
+                this.selectDice(diceAtPosition.id);
+                // Continue with drag setup in case user wants to drag
+            } else {
+                // Clicked on empty space with no valid action, do nothing
+                return;
+            }
+            
+            if (e instanceof TouchEvent) {
+                if (e.touches.length > 0) {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }
+            } else {
                 startX = e.clientX;
                 startY = e.clientY;
             }
+            
             isDragging = false;
-            this.gameState.dragStartPosition = this.gameState.selectedDice?.position || null;
+            
             // Create move handler for this drag session
             moveHandler = (e) => {
-                if (!this.gameState.selectedDice || this.gameState.movesRemaining <= 0)
-                    return;
+                if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
                 let currentX, currentY;
                 if (e instanceof TouchEvent) {
-                    currentX = e.touches[0].clientX;
-                    currentY = e.touches[0].clientY;
-                }
-                else {
+                    if (e.touches.length > 0) {
+                        currentX = e.touches[0].clientX;
+                        currentY = e.touches[0].clientY;
+                    } else {
+                        return; // No touches, exit
+                    }
+                } else {
                     currentX = e.clientX;
                     currentY = e.clientY;
                 }
+                
                 const deltaX = currentX - startX;
                 const deltaY = currentY - startY;
                 const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                // Start dragging if moved enough
-                if (!isDragging && distance > 10) {
+                
+                // Start dragging if moved enough (smaller threshold for mobile)
+                if (!isDragging && distance > 5) {
                     isDragging = true;
                     this.gameState.dragging = true;
                 }
+                
                 if (isDragging) {
-                    // Find which cell the mouse is currently over
+                    // Find which cell the touch/mouse is currently over
                     const elementAtPoint = document.elementFromPoint(currentX, currentY);
                     if (elementAtPoint) {
                         const cell = elementAtPoint.closest('.cell');
                         if (cell && cell.dataset.position) {
                             const targetPosition = parseInt(cell.dataset.position);
-                            if (!isNaN(targetPosition) && this.isValidMoveDestination(targetPosition)) {
-                                const currentPosition = this.gameState.selectedDice.position;
-                                const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
-                                const [targetRow, targetCol] = this.positionToRowCol(targetPosition);
-                                const rowDiff = targetRow - currentRow;
-                                const colDiff = targetCol - currentCol;
-                                const direction = [
-                                    rowDiff === 0 ? 0 : (rowDiff > 0 ? 1 : -1),
-                                    colDiff === 0 ? 0 : (colDiff > 0 ? 1 : -1)
-                                ];
-                                this.moveOneStep(direction);
+                            if (!isNaN(targetPosition)) {
+                                // Use the same logic as click-to-move
+                                this.gameState.inputMethod = 'pointer';
+                                this.moveToPosition(targetPosition);
                             }
                         }
                     }
                 }
-                e.preventDefault();
             };
+            
             // Create end handler for this drag session
             endHandler = () => {
+                // Reset if we were dragging and stopped with moves remaining
+                if (isDragging && this.gameState.movesRemaining > 0 && this.gameState.selectedDie) {
+                    // Clear selection and transient tile
+                    this.gameState.selectedDie = null;
+                    this.gameState.movesRemaining = 0;
+                    this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+                    this.render();
+                }
+                
                 if (isDragging) {
                     this.gameState.dragging = false;
                     isDragging = false;
                 }
+                
                 // Remove listeners when drag ends
                 document.removeEventListener('mousemove', moveHandler);
                 document.removeEventListener('mouseup', endHandler);
                 document.removeEventListener('touchmove', moveHandler);
                 document.removeEventListener('touchend', endHandler);
+                if ('PointerEvent' in window) {
+                    document.removeEventListener('pointermove', moveHandler);
+                    document.removeEventListener('pointerup', endHandler);
+                }
             };
+            
             // Add listeners only during drag session
             document.addEventListener('mousemove', moveHandler);
             document.addEventListener('mouseup', endHandler);
             document.addEventListener('touchmove', moveHandler, { passive: false });
             document.addEventListener('touchend', endHandler);
-            e.preventDefault();
+            if ('PointerEvent' in window) {
+                document.addEventListener('pointermove', moveHandler, { passive: false });
+                document.addEventListener('pointerup', endHandler);
+            }
         };
-        // Only attach start events to the element
+        
+        // Attach start events to the element
         element.addEventListener('mousedown', handleStart);
         element.addEventListener('touchstart', handleStart, { passive: false });
-    }
-    tryDragMove(direction) {
-        if (!this.gameState.selectedDice || this.gameState.movesRemaining <= 0)
-            return;
-        const currentPosition = this.gameState.selectedDice.position;
-        const isLastMove = this.gameState.movesRemaining === 1;
-        if (this.canMoveInDirection(currentPosition, direction, isLastMove)) {
-            this.moveOneStep(direction);
+        // Also add pointer events for better mobile support
+        if ('PointerEvent' in window) {
+            element.addEventListener('pointerdown', handleStart);
         }
-    }
-    isValidMoveDestination(targetPosition) {
-        if (!this.gameState.selectedDice || this.gameState.movesRemaining <= 0) {
-            return false;
-        }
-        const currentPosition = this.gameState.selectedDice.position;
-        const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
-        const [targetRow, targetCol] = this.positionToRowCol(targetPosition);
-        // Check if target is adjacent (1 step away)
-        const rowDiff = targetRow - currentRow;
-        const colDiff = targetCol - currentCol;
-        const distance = Math.abs(rowDiff) + Math.abs(colDiff);
-        if (distance !== 1) {
-            return false; // Not adjacent
-        }
-        // Check if we can move in this direction
-        const direction = [
-            rowDiff === 0 ? 0 : (rowDiff > 0 ? 1 : -1),
-            colDiff === 0 ? 0 : (colDiff > 0 ? 1 : -1)
-        ];
-        const isLastMove = this.gameState.movesRemaining === 1;
-        return this.canMoveInDirection(currentPosition, direction, isLastMove);
     }
     selectDice(diceId) {
         // Don't allow selection if game is over
         if (this.isGameOver()) {
             return;
         }
-        if (this.gameState.selectedDice) {
+        if (this.gameState.selectedDie) {
             // Deselect current dice
-            this.gameState.selectedDice = null;
+            this.gameState.selectedDie = null;
             this.gameState.movesRemaining = 0;
-            this.gameState.startPosition = null;
+            this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
         }
         const dice = this.dice.find(d => d.id === diceId);
         if (dice) {
-            this.gameState.selectedDice = dice;
+            this.gameState.selectedDie = dice;
             this.gameState.movesRemaining = dice.value;
-            this.gameState.startPosition = dice.position;
+            // Initialize transient tile at dice's current position
+            this.gameState.transientTile = {
+                position: dice.position,
+                value: dice.value,
+                originalDiceId: dice.id
+            };
         }
         this.render();
+    }
+    
+    getValidMoves(fromPosition, movesRemaining) {
+        const validMoves = [];
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // up, down, left, right
+        
+        for (const direction of directions) {
+            const isLastMove = movesRemaining === 1;
+            if (this.canMoveInDirection(fromPosition, direction, isLastMove)) {
+                const [currentRow, currentCol] = this.positionToRowCol(fromPosition);
+                const [deltaRow, deltaCol] = direction;
+                const newRow = currentRow + deltaRow;
+                const newCol = currentCol + deltaCol;
+                const newPosition = this.rowColToPosition(newRow, newCol);
+                validMoves.push(newPosition);
+            }
+        }
+        
+        return validMoves;
     }
     positionToRowCol(position) {
         return [Math.floor(position / 5), position % 5];
@@ -603,9 +707,9 @@ class Game {
         }
     }
     moveOneStep(direction) {
-        if (!this.gameState.selectedDice || this.gameState.movesRemaining <= 0)
+        if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0)
             return;
-        const currentPosition = this.gameState.selectedDice.position;
+        const currentPosition = this.gameState.transientTile.position;
         const isLastMove = this.gameState.movesRemaining === 1;
         if (!this.canMoveInDirection(currentPosition, direction, isLastMove)) {
             return; // Invalid move
@@ -615,30 +719,48 @@ class Game {
         const newRow = currentRow + deltaRow;
         const newCol = currentCol + deltaCol;
         const newPosition = this.rowColToPosition(newRow, newCol);
-        // Move the dice
-        this.gameState.selectedDice.position = newPosition;
+        
+        // Move the transient tile
+        this.gameState.transientTile.position = newPosition;
         this.gameState.movesRemaining--;
+        
         // Check if we've used all moves
         if (this.gameState.movesRemaining === 0) {
-            // Check if landed on another dice
-            const targetDice = this.dice.find(d => d.position === newPosition && d.id !== this.gameState.selectedDice.id);
-            if (targetDice) {
-                this.handleDiceCollision(this.gameState.selectedDice, targetDice);
-            }
-            else {
-                // No collision, show final position then return to start
-                this.render(); // Show final position first
-                setTimeout(() => {
-                    this.returnToStart();
-                }, 300); // Brief pause to see final position
-            }
+            this.finalizeTileMovement();
         }
         else {
             // Still have moves left, just update the display
             this.render();
         }
     }
-    handleDiceCollision(movingDice, targetDice) {
+    
+    finalizeTileMovement() {
+        if (!this.gameState.transientTile || !this.gameState.selectedDie) {
+            return;
+        }
+        
+        const finalPosition = this.gameState.transientTile.position;
+        const movingDice = this.gameState.selectedDie;
+        
+        // Check if landed on another dice
+        const targetDice = this.dice.find(d => d.position === finalPosition && d.id !== movingDice.id);
+        
+        if (targetDice) {
+            // Handle collision at final position (don't modify die position yet)
+            this.handleDiceCollision(movingDice, targetDice, finalPosition);
+        }
+        else {
+            // No collision, return to start after brief pause
+            this.render(); // Show final position first
+            setTimeout(() => {
+                this.returnToStart();
+            }, 300);
+        }
+    }
+    handleDiceCollision(movingDice, targetDice, finalPosition) {
+        // Delay game over check until animations complete
+        this.gameState.delayGameOverCheck = true;
+        
         // First render to show the collision
         this.render();
         if (movingDice.value === targetDice.value) {
@@ -651,13 +773,29 @@ class Game {
         }
     }
     animateDestruction(movingDice, targetDice) {
-        // Instant destruction - no animation
-        this.dice = this.dice.filter(d => d.id !== movingDice.id && d.id !== targetDice.id);
-        // Reset game state
-        this.gameState.selectedDice = null;
-        this.gameState.movesRemaining = 0;
-        this.gameState.startPosition = null;
-        this.render();
+        // Add destroying animation to both dice
+        const movingElement = document.querySelector(`[data-dice-id="${movingDice.id}"]`);
+        const targetElement = document.querySelector(`[data-dice-id="${targetDice.id}"]`);
+        
+        if (movingElement) {
+            movingElement.classList.add('destroying');
+        }
+        if (targetElement) {
+            targetElement.classList.add('destroying');
+        }
+        
+        // Wait for animation to complete before removing dice
+        setTimeout(() => {
+            this.dice = this.dice.filter(d => d.id !== movingDice.id && d.id !== targetDice.id);
+            // Reset game state
+            this.gameState.selectedDie = null;
+            this.gameState.movesRemaining = 0;
+            this.gameState.transientTile = null;
+            this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+            this.gameState.delayGameOverCheck = false; // Allow game over check now
+            this.render();
+        }, 800); // Match the CSS animation duration
     }
     animateReplacement(movingDice, targetDice) {
         const difference = Math.abs(movingDice.value - targetDice.value);
@@ -666,28 +804,88 @@ class Game {
             this.animateDestruction(movingDice, targetDice);
             return;
         }
-        // Instant replacement - no animation
+        // Update the value and remove moving dice immediately
         targetDice.value = difference;
         this.dice = this.dice.filter(d => d.id !== movingDice.id);
-        // Auto-select the new dice only if game is not over
-        if (!this.isGameOver()) {
-            this.gameState.selectedDice = targetDice;
-            this.gameState.movesRemaining = targetDice.value;
-            this.gameState.startPosition = targetDice.position;
-        }
-        else {
-            this.gameState.selectedDice = null;
-            this.gameState.movesRemaining = 0;
-            this.gameState.startPosition = null;
-        }
-        this.render();
+        
+        // Clear transient tile so target dice renders properly
+        this.gameState.transientTile = null;
+        this.render(); // Show the new value first
+        
+        // Then animate the value change with a delightful spin
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+            const targetElement = document.querySelector(`[data-dice-id="${targetDice.id}"]`);
+            if (targetElement) {
+                targetElement.classList.add('spinning');
+            }
+        });
+        
+        // Wait for animation to complete, then finalize state
+        setTimeout(() => {
+            // Remove the spinning class
+            const targetElement = document.querySelector(`[data-dice-id="${targetDice.id}"]`);
+            if (targetElement) {
+                targetElement.classList.remove('spinning');
+            }
+            
+            // Auto-select the new dice only if game is not over AND we used keyboard
+            if (!this.isGameOver() && this.gameState.inputMethod === 'keyboard') {
+                this.gameState.selectedDie = targetDice;
+                this.gameState.movesRemaining = targetDice.value;
+                this.gameState.transientTile = {
+                    position: targetDice.position,
+                    value: targetDice.value,
+                    originalDiceId: targetDice.id
+                };
+            }
+            else {
+                this.gameState.selectedDie = null;
+                this.gameState.movesRemaining = 0;
+                this.gameState.transientTile = null;
+                this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+            }
+            
+            // Clear input method after move completion
+            this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+            this.gameState.delayGameOverCheck = false; // Allow game over check now
+            this.render();
+        }, 400); // Match the CSS animation duration
     }
+    moveToPosition(targetPosition) {
+        if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0) {
+            return false;
+        }
+        
+        const currentPosition = this.gameState.transientTile.position;
+        const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
+        const [targetRow, targetCol] = this.positionToRowCol(targetPosition);
+        
+        const rowDiff = targetRow - currentRow;
+        const colDiff = targetCol - currentCol;
+        const distance = Math.abs(rowDiff) + Math.abs(colDiff);
+        
+        // Check if target is adjacent (1 step away)
+        if (distance !== 1) {
+            return false;
+        }
+        
+        const direction = [
+            rowDiff === 0 ? 0 : (rowDiff > 0 ? 1 : -1),
+            colDiff === 0 ? 0 : (colDiff > 0 ? 1 : -1)
+        ];
+        
+        this.moveOneStep(direction);
+        return true;
+    }
+    
     returnToStart() {
-        if (!this.gameState.selectedDice || this.gameState.startPosition === null)
+        if (!this.gameState.selectedDie)
             return;
-        const returningDice = this.gameState.selectedDice;
-        const startPos = this.gameState.startPosition;
-        this.gameState.animating = true;
+        const returningDice = this.gameState.selectedDie;
+        const startPos = this.gameState.selectedDie.position;
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
             const currentDiceEl = document.querySelector(`[data-dice-id="${returningDice.id}"]`);
@@ -698,15 +896,15 @@ class Game {
                 currentDiceEl.offsetHeight;
                 currentDiceEl.classList.add('bouncing');
             }
-            // Wait for bounce animation, then move back and reselect
+            // Wait for bounce animation, then reselect (die is already at start position)
             setTimeout(() => {
-                // Move dice back to start position
-                returningDice.position = startPos;
-                // Reselect the dice
-                this.gameState.selectedDice = returningDice;
+                this.gameState.selectedDie = returningDice;
                 this.gameState.movesRemaining = returningDice.value;
-                this.gameState.startPosition = startPos;
-                this.gameState.animating = false;
+                this.gameState.transientTile = {
+                    position: startPos,
+                    value: returningDice.value,
+                    originalDiceId: returningDice.id
+                };
                 this.render();
             }, 300); // Match faster animation duration
         });
