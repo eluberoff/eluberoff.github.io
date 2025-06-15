@@ -56,16 +56,18 @@
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             border: 2px solid #666;
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
-        .help-icon:hover {
+        .help-icon:hover,
+        .help-icon:focus {
             background: #666;
             border-color: #777;
-            transform: scale(1.1);
+            transform: scale(1.2);
         }
         
         /* Modal Styles */
@@ -101,10 +103,17 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+            transition: all 0.2s ease;
+            outline: none;
         }
         .close:hover,
         .close:focus {
             color: white;
+            transform: scale(1.2);
         }
         .modal h2 {
             margin-top: 0;
@@ -549,7 +558,7 @@
     <!-- Help Modal -->
     <div id="helpModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <button class="close" aria-label="Close help modal">&times;</button>
             <h2>How to Play</h2>
             <div class="help-section">
                 <h3>Goal</h3>

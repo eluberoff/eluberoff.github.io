@@ -11,6 +11,7 @@ class Game {
             dragging: false,
             transientTile: null, // Tracks the moving tile's current position without modifying original dice
             inputMethod: null, // 'keyboard' or 'pointer' - tracks how current move was initiated
+            lastInputMethod: null, // Remember the previous input method to handle mixed navigation
             delayGameOverCheck: false, // Delay game over overlay until animations complete
             trailCells: [] // Array of positions that have been visited during current movement
         };
@@ -79,6 +80,10 @@ class Game {
         this.gameState.movesRemaining = 0;
         this.gameState.dragging = false;
         this.gameState.transientTile = null;
+        // Store the current input method before clearing it
+        if (this.gameState.inputMethod) {
+            this.gameState.lastInputMethod = this.gameState.inputMethod;
+        }
         this.gameState.inputMethod = null;
         this.gameState.delayGameOverCheck = false;
         this.gameState.trailCells = [];
@@ -390,20 +395,29 @@ class Game {
         if (helpButton && helpModal) {
             helpButton.addEventListener('click', () => {
                 helpModal.style.display = 'block';
+                // Focus the close button when modal opens for keyboard accessibility
+                const closeButton = helpModal.querySelector('.close');
+                if (closeButton) {
+                    setTimeout(() => closeButton.focus(), 100);
+                }
             });
         }
         
+        const closeModal = () => {
+            helpModal.style.display = 'none';
+            // Return focus to help button when modal closes
+            helpButton.focus();
+        };
+        
         if (closeButton && helpModal) {
-            closeButton.addEventListener('click', () => {
-                helpModal.style.display = 'none';
-            });
+            closeButton.addEventListener('click', closeModal);
         }
         
         if (helpModal) {
             // Close modal when clicking outside of modal content
             helpModal.addEventListener('click', (e) => {
                 if (e.target === helpModal) {
-                    helpModal.style.display = 'none';
+                    closeModal();
                 }
             });
         }
@@ -420,12 +434,20 @@ class Game {
         
         // Add keyboard listeners
         document.addEventListener('keydown', (e) => {
-            // Remove custom tab handling - let browser handle natural tab order
-            if (e.key === 'Escape' && this.gameState.selectedDie) {
-                // Reset all game state (die is already at start position)
-                this.clearSelectedDie();
-                this.render();
-                return;
+            // Handle Escape key
+            if (e.key === 'Escape') {
+                // First check if modal is open
+                if (helpModal && helpModal.style.display === 'block') {
+                    closeModal();
+                    return;
+                }
+                // Then check if game has selected die
+                if (this.gameState.selectedDie) {
+                    // Reset all game state (die is already at start position)
+                    this.clearSelectedDie();
+                    this.render();
+                    return;
+                }
             }
             if (this.gameState.selectedDie && this.gameState.movesRemaining > 0) {
                 let direction = null;
@@ -595,6 +617,14 @@ class Game {
                 return;
             }
             
+            // Special handling: If last input was keyboard and clicking on a dice, always select it
+            const diceAtPosition = this.getDiceAtPosition(position);
+            if (this.gameState.lastInputMethod === 'keyboard' && diceAtPosition) {
+                this.selectDice(diceAtPosition.id);
+                this.gameState.lastInputMethod = null; // Clear after use
+                return; // Don't continue with any movement logic
+            }
+            
             // Priority 1: Check for capture attempt (final move landing on adjacent dice)
             if (this.gameState.transientTile && this.gameState.movesRemaining === 1) {
                 const targetDice = this.getDiceAtPosition(position);
@@ -630,7 +660,6 @@ class Game {
             }
             
             // Priority 3: Check for dice selection
-            const diceAtPosition = this.getDiceAtPosition(position);
             if (diceAtPosition) {
                 // Don't allow switching dice if current dice has already moved
                 if (this.hasMovedFromStart() && 
@@ -640,6 +669,8 @@ class Game {
                     return;
                 }
                 this.selectDice(diceAtPosition.id);
+                // Clear lastInputMethod since we're now using pointer input
+                this.gameState.lastInputMethod = null;
                 // Continue with drag setup in case user wants to drag
             } else {
                 // Clicked on empty space - check if it's a valid move or should deselect
@@ -1022,7 +1053,10 @@ class Game {
                 this.clearSelectedDie();
             }
             
-            // Clear input method after move completion
+            // Clear input method after move completion, preserving it as lastInputMethod
+            if (this.gameState.inputMethod) {
+                this.gameState.lastInputMethod = this.gameState.inputMethod;
+            }
             this.gameState.inputMethod = null;
             this.gameState.delayGameOverCheck = false; // Allow game over check now
             this.render();
@@ -1070,10 +1104,16 @@ class Game {
                 currentDiceEl.offsetHeight;
                 currentDiceEl.classList.add('bouncing');
             }
-            // Wait for bounce animation, then clear selection completely
+            // Wait for bounce animation, then handle selection based on input method
             setTimeout(() => {
-                this.clearSelectedDie();
-                this.render();
+                if (this.gameState.inputMethod === 'keyboard') {
+                    // For keyboard input, re-select the dice to maintain focus
+                    this.selectDice(returningDice.id);
+                } else {
+                    // For pointer input, clear selection completely
+                    this.clearSelectedDie();
+                    this.render();
+                }
             }, 300); // Match faster animation duration
         });
     }
