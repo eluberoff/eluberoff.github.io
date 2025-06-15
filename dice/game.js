@@ -11,7 +11,8 @@ class Game {
             dragging: false,
             transientTile: null, // Tracks the moving tile's current position without modifying original dice
             inputMethod: null, // 'keyboard' or 'pointer' - tracks how current move was initiated
-            delayGameOverCheck: false // Delay game over overlay until animations complete
+            delayGameOverCheck: false, // Delay game over overlay until animations complete
+            trailCells: [] // Array of positions that have been visited during current movement
         };
         this.gameContainer = document.getElementById('gameContent');
         this.init();
@@ -48,12 +49,19 @@ class Game {
                 selectedPositions.push(position);
             }
         }
-        // Create dice with random values
-        this.dice = selectedPositions.map((position, index) => ({
-            value: this.getRandomDiceValue(),
-            position: position,
-            id: `dice-${index}`
-        }));
+        
+        // Keep re-rolling until we get an even sum
+        let attempts = 0;
+        do {
+            // Create dice with random values
+            this.dice = selectedPositions.map((position, index) => ({
+                value: this.getRandomDiceValue(),
+                position: position,
+                id: `dice-${index}`
+            }));
+            attempts++;
+        } while (this.getDiceSum() % 2 !== 0);
+        
         // Store initial configuration for reset
         this.initialDice = this.dice.map(dice => ({ ...dice }));
     }
@@ -63,9 +71,58 @@ class Game {
     getDiceAtPosition(position) {
         return this.dice.find(dice => dice.position === position);
     }
+    getDiceSum() {
+        return this.dice.reduce((sum, dice) => sum + dice.value, 0);
+    }
+    
+    clearTransientState() {
+        this.gameState.movesRemaining = 0;
+        this.gameState.dragging = false;
+        this.gameState.transientTile = null;
+        this.gameState.inputMethod = null;
+        this.gameState.delayGameOverCheck = false;
+        this.gameState.trailCells = [];
+    }
+    
+    clearSelectedDie() {
+        this.gameState.selectedDie = null;
+        this.clearTransientState();
+    }
+    
+    hasMovedFromStart() {
+        // Returns true if the selected die has moved from its starting position
+        return this.gameState.selectedDie && 
+               this.gameState.movesRemaining < this.gameState.selectedDie.value;
+    }
+    
     render() {
-        let statusHTML = `<div id="gameStatus">${this.getStatusMessage()}</div>`;
-        let gridHTML = '<div id="grid">';
+        // Check if this is initial render (no grid exists yet)
+        const gridContainer = document.getElementById('grid');
+        if (!gridContainer) {
+            this.renderInitial();
+        } else {
+            this.renderGrid();
+        }
+    }
+    
+    renderInitial() {
+        // Render the entire page structure once
+        const buttonsHTML = `
+            <div class="button-container">
+                <button id="resetButton" class="game-btn reset-btn">Reset</button>
+                <button id="newGameButton" class="game-btn new-game-btn">New</button>
+                <button id="shareButton" class="game-btn share-btn">Share</button>
+            </div>
+            <div id="shareMessage"></div>
+        `;
+        
+        this.gameContainer.innerHTML = '<div id="grid"></div>' + buttonsHTML;
+        this.attachButtonListeners();
+        this.renderGrid();
+    }
+    
+    renderGrid() {
+        let gridHTML = '';
         
         // Get valid moves for current transient tile
         const validMoves = this.gameState.transientTile && this.gameState.movesRemaining > 0 
@@ -82,8 +139,13 @@ class Game {
                 if (isInner) cellClasses.push('inner');
                 
                 // Add visual indicators for game state
-                if (this.gameState.selectedDie && position === this.gameState.selectedDie.position) {
+                if (this.gameState.transientTile && position === this.gameState.transientTile.position) {
                     cellClasses.push('current-position');
+                }
+                
+                // Show trail highlighting for visited cells
+                if (this.gameState.trailCells.includes(position)) {
+                    cellClasses.push('trail');
                 }
                 
                 // Show valid move indicators for empty squares
@@ -111,6 +173,15 @@ class Game {
                         const isSelected = this.gameState.selectedDie?.id === dice.id;
                         const classes = ['dice'];
                         if (isSelected) classes.push('selected');
+                        // Make other dice non-interactive if current dice has moved, unless it's a valid capture target
+                        if (this.hasMovedFromStart() && !isSelected) {
+                            // Check if this dice is a valid capture target (final move landing position)
+                            const isValidCaptureTarget = this.gameState.movesRemaining === 1 && 
+                                                       validMoves.includes(position);
+                            if (!isValidCaptureTarget) {
+                                classes.push('non-interactive');
+                            }
+                        }
                         cellContent = `<div class="${classes.join(' ')}" data-dice-id="${dice.id}" tabindex="0">${dice.value}</div>`;
                     }
                 }
@@ -127,6 +198,7 @@ class Game {
                 gridHTML += `<div class="${cellClasses.join(' ')}" data-position="${position}">${cellContent}</div>`;
             }
         }
+        
         // Add game over overlay (always present but hidden initially)
         const isGameOverState = this.isGameOver() && !this.gameState.delayGameOverCheck;
         if (isGameOverState) {
@@ -135,28 +207,37 @@ class Game {
                 `<div class="final-dice">${dice.value}</div>`
             ).join('');
             
-            gridHTML += `
-                <div id="gameOverOverlay">
-                    <div class="game-over-score">Your score: ${finalScore}</div>
-                    <div class="final-dice-container">${finalDiceHTML}</div>
-                </div>
-            `;
+            if (finalScore === 0) {
+                // Perfect score celebration!
+                gridHTML += `
+                    <div id="gameOverOverlay" class="win-celebration">
+                        <div class="win-title">🎉 You Win! 🎉</div>
+                        <div class="win-subtitle">Perfect Score!</div>
+                        <div class="final-dice-container">${finalDiceHTML}</div>
+                    </div>
+                `;
+            } else {
+                // Regular game over
+                gridHTML += `
+                    <div id="gameOverOverlay">
+                        <div class="game-over-score">Your score: ${finalScore}</div>
+                        <div class="final-dice-container">${finalDiceHTML}</div>
+                    </div>
+                `;
+            }
         }
         
-        gridHTML += '</div>';
+        // Update only the grid content
+        const gridContainer = document.getElementById('grid');
+        if (gridContainer) {
+            gridContainer.innerHTML = gridHTML;
+        }
         
-        // Always show buttons
-        const buttonsHTML = `
-            <div class="button-container">
-                <button id="resetButton" class="game-btn reset-btn">Reset</button>
-                <button id="newGameButton" class="game-btn new-game-btn">New</button>
-                <button id="shareButton" class="game-btn share-btn">Share</button>
-            </div>
-        `;
-        this.gameContainer.innerHTML = statusHTML + gridHTML + buttonsHTML;
         this.attachSquareListeners();
-        this.attachButtonListeners();
         this.cleanupAnimationClasses();
+        
+        // Restore focus after render
+        this.restoreFocus();
         
         // Animate game over overlay if game is over
         if (isGameOverState) {
@@ -192,24 +273,14 @@ class Game {
         // Reset dice to initial configuration
         this.dice = this.initialDice.map(dice => ({ ...dice }));
         // Reset game state
-        this.gameState.selectedDie = null;
-        this.gameState.movesRemaining = 0;
-        this.gameState.dragging = false;
-        this.gameState.transientTile = null;
-        this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+        this.clearSelectedDie();
         this.render();
     }
     startNewGame() {
         // Generate completely new dice configuration
         this.placeDice();
         // Reset game state
-        this.gameState.selectedDie = null;
-        this.gameState.movesRemaining = 0;
-        this.gameState.dragging = false;
-        this.gameState.transientTile = null;
-        this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+        this.clearSelectedDie();
         // Clear URL parameters for new game
         this.clearUrlParameters();
         this.render();
@@ -228,24 +299,22 @@ class Game {
             // Modern clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
-                this.showShareFeedback('Puzzle URL copied to clipboard!');
+                this.showShareMessage('Puzzle URL copied to clipboard!');
                 return;
             }
         }
         catch (err) {
-            // Fallback: Just show the URL update message
-            this.showShareFeedback('Puzzle URL updated. Copy from address bar.');
+            this.showShareMessage('Puzzle URL updated. Copy from address bar.');
         }
     }
-    showShareFeedback(message) {
-        const statusEl = document.getElementById('gameStatus');
-        if (statusEl) {
-            const originalText = statusEl.textContent;
-            statusEl.textContent = message;
-            statusEl.style.color = '#4caf50';
+    
+    showShareMessage(message) {
+        const messageEl = document.getElementById('shareMessage');
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.style.opacity = '1';
             setTimeout(() => {
-                statusEl.textContent = originalText || '';
-                statusEl.style.color = '';
+                messageEl.style.opacity = '0';
             }, 2000);
         }
     }
@@ -312,37 +381,49 @@ class Game {
             dice.classList.remove('destroying', 'bouncing');
         });
     }
-    getStatusMessage() {
-        // Don't check game over while a dice is actively moving
-        if (this.gameState.selectedDie && this.gameState.movesRemaining < this.gameState.selectedDie.value) {
-            return `Moves remaining: ${this.gameState.movesRemaining}`;
-        }
-        // Only check game over in stable states (no dice selected or dice selected but no moves made)
-        if (this.isGameOver()) {
-            const finalScore = this.getFinalScore();
-            return `Game Over! Final Score: ${finalScore}`;
-        }
-        if (this.gameState.selectedDie) {
-            return `Moves remaining: ${this.gameState.movesRemaining}`;
-        }
-        return 'Click a die to start!';
-    }
     setupEventListeners() {
+        // Add help modal listeners
+        const helpButton = document.getElementById('helpButton');
+        const helpModal = document.getElementById('helpModal');
+        const closeButton = helpModal?.querySelector('.close');
+        
+        if (helpButton && helpModal) {
+            helpButton.addEventListener('click', () => {
+                helpModal.style.display = 'block';
+            });
+        }
+        
+        if (closeButton && helpModal) {
+            closeButton.addEventListener('click', () => {
+                helpModal.style.display = 'none';
+            });
+        }
+        
+        if (helpModal) {
+            // Close modal when clicking outside of modal content
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) {
+                    helpModal.style.display = 'none';
+                }
+            });
+        }
+        
+        // Add click outside to deselect
+        document.addEventListener('click', (e) => {
+            // Check if click is outside the game grid
+            const grid = document.getElementById('grid');
+            if (grid && this.gameState.selectedDie && !grid.contains(e.target)) {
+                this.clearSelectedDie();
+                this.render();
+            }
+        });
+        
         // Add keyboard listeners
         document.addEventListener('keydown', (e) => {
-            // Handle Tab for dice cycling
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                this.cycleThroughDice();
-                return;
-            }
+            // Remove custom tab handling - let browser handle natural tab order
             if (e.key === 'Escape' && this.gameState.selectedDie) {
                 // Reset all game state (die is already at start position)
-                this.gameState.selectedDie = null;
-                this.gameState.movesRemaining = 0;
-                this.gameState.transientTile = null;
-        this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+                this.clearSelectedDie();
                 this.render();
                 return;
             }
@@ -375,12 +456,22 @@ class Game {
         if (this.isGameOver()) {
             return;
         }
-        // Only allow tab cycling if no moves have been made with current dice
-        if (this.gameState.selectedDie && this.gameState.movesRemaining < this.gameState.selectedDie.value) {
-            return; // Dice has already moved
+        // If mid-move, clear transient state first
+        if (this.hasMovedFromStart()) {
+            this.clearSelectedDie();
         }
-        // Sort dice by ID for consistent ordering
-        const sortedDice = [...this.dice].sort((a, b) => a.id.localeCompare(b.id));
+        // Sort dice by position: left-to-right, top-to-bottom (reading order)
+        const sortedDice = [...this.dice].sort((a, b) => {
+            const [rowA, colA] = this.positionToRowCol(a.position);
+            const [rowB, colB] = this.positionToRowCol(b.position);
+            
+            // First sort by row (top to bottom)
+            if (rowA !== rowB) {
+                return rowA - rowB;
+            }
+            // Then sort by column (left to right)
+            return colA - colB;
+        });
         if (sortedDice.length === 0)
             return;
         let nextIndex = 0;
@@ -391,6 +482,69 @@ class Game {
         const nextDice = sortedDice[nextIndex];
         this.selectDice(nextDice.id);
     }
+    
+    selectTopLeftDice() {
+        // Select the top-left dice (first in reading order)
+        if (this.dice.length === 0) return;
+        
+        const sortedDice = [...this.dice].sort((a, b) => {
+            const [rowA, colA] = this.positionToRowCol(a.position);
+            const [rowB, colB] = this.positionToRowCol(b.position);
+            
+            // First sort by row (top to bottom)
+            if (rowA !== rowB) {
+                return rowA - rowB;
+            }
+            // Then sort by column (left to right)
+            return colA - colB;
+        });
+        
+        this.selectDice(sortedDice[0].id);
+    }
+    
+    getDiceTabIndex(position) {
+        // Calculate tabindex based on position (reading order)
+        // Help icon is tabindex="1", dice start at tabindex="2"
+        const [row, col] = this.positionToRowCol(position);
+        return 2 + (row * 5) + col;  // 2-26 for dice positions
+    }
+    
+    restoreFocus() {
+        let targetDiceId = null;
+        
+        // Priority 1: Focus on transient tile if it exists
+        if (this.gameState.transientTile) {
+            targetDiceId = this.gameState.transientTile.originalDiceId;
+        }
+        // Priority 2: Focus on selected die if it exists
+        else if (this.gameState.selectedDie) {
+            targetDiceId = this.gameState.selectedDie.id;
+        }
+        
+        if (targetDiceId) {
+            const targetElement = document.querySelector(`[data-dice-id="${targetDiceId}"]`);
+            if (targetElement) {
+                // Set flag to prevent circular rendering during focus restoration
+                this.gameState.restoringFocus = true;
+                targetElement.focus();
+                this.gameState.restoringFocus = false;
+            }
+        }
+    }
+    
+    updateDiceSelection() {
+        // Update dice visual selection without full re-render
+        const diceElements = document.querySelectorAll('.dice');
+        diceElements.forEach(diceEl => {
+            const diceId = diceEl.dataset.diceId;
+            if (diceId === this.gameState.selectedDie?.id) {
+                diceEl.classList.add('selected');
+            } else {
+                diceEl.classList.remove('selected');
+            }
+        });
+    }
+    
     attachSquareListeners() {
         const squares = document.querySelectorAll('.cell');
         squares.forEach(square => {
@@ -398,19 +552,32 @@ class Game {
             this.attachInteractionHandler(square);
         });
         
-        // Attach accessibility listeners to dice
+        // Auto-select dice when they receive focus
         const diceElements = document.querySelectorAll('.dice');
         diceElements.forEach(diceEl => {
-            diceEl.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const diceId = diceEl.dataset.diceId;
-                    if (diceId) {
-                        this.selectDice(diceId);
-                    }
+            diceEl.addEventListener('focus', (e) => {
+                const diceId = diceEl.dataset.diceId;
+                if (diceId && !this.gameState.restoringFocus) {
+                    this.selectDice(diceId);
                 }
             });
+        });
+        
+        // Deselect dice when tabbing to buttons or help
+        const helpButton = document.getElementById('helpButton');
+        const resetButton = document.getElementById('resetButton');
+        const newGameButton = document.getElementById('newGameButton');
+        const shareButton = document.getElementById('shareButton');
+        
+        [helpButton, resetButton, newGameButton, shareButton].forEach(element => {
+            if (element) {
+                element.addEventListener('focus', () => {
+                    if (this.gameState.selectedDie) {
+                        this.clearSelectedDie();
+                        this.render();
+                    }
+                });
+            }
         });
     }
     
@@ -450,11 +617,11 @@ class Game {
                 }
             }
             
-            // Priority 2: Check for valid move to empty square
+            // Priority 2: Check for valid move to adjacent empty square
             if (this.gameState.transientTile && this.gameState.movesRemaining > 0) {
                 const diceAtPosition = this.getDiceAtPosition(position);
                 if (!diceAtPosition) {
-                    // Empty square - try to move there
+                    // Empty square - try to move there (only if adjacent)
                     this.gameState.inputMethod = 'pointer';
                     if (this.moveToPosition(position)) {
                         return; // Successful move, no need for drag setup
@@ -465,10 +632,27 @@ class Game {
             // Priority 3: Check for dice selection
             const diceAtPosition = this.getDiceAtPosition(position);
             if (diceAtPosition) {
+                // Don't allow switching dice if current dice has already moved
+                if (this.hasMovedFromStart() && 
+                    this.gameState.selectedDie && 
+                    diceAtPosition.id !== this.gameState.selectedDie.id) {
+                    // Ignore clicks on other dice when in motion
+                    return;
+                }
                 this.selectDice(diceAtPosition.id);
                 // Continue with drag setup in case user wants to drag
             } else {
-                // Clicked on empty space with no valid action, do nothing
+                // Clicked on empty space - check if it's a valid move or should deselect
+                if (this.gameState.selectedDie && this.gameState.movesRemaining > 0) {
+                    const validMoves = this.getValidMoves(this.gameState.transientTile.position, this.gameState.movesRemaining);
+                    if (!validMoves.includes(position)) {
+                        // Clicked on unreachable empty space - deselect
+                        this.clearSelectedDie();
+                        this.render();
+                        return;
+                    }
+                }
+                // Empty space with no dice selected, do nothing
                 return;
             }
             
@@ -540,11 +724,7 @@ class Game {
                 // Only reset if we actually performed drag moves AND have moves remaining
                 if (actuallyMoved && this.gameState.movesRemaining > 0 && this.gameState.selectedDie && !this.gameState.delayGameOverCheck) {
                     // Clear selection and transient tile
-                    this.gameState.selectedDie = null;
-                    this.gameState.movesRemaining = 0;
-                    this.gameState.transientTile = null;
-                    this.gameState.inputMethod = null;
-                    this.gameState.delayGameOverCheck = false;
+                    this.clearSelectedDie();
                     this.render();
                 }
                 
@@ -553,33 +733,35 @@ class Game {
                 }
                 
                 // Remove only this session's listeners
-                document.removeEventListener('mousemove', sessionMoveHandler);
-                document.removeEventListener('mouseup', sessionEndHandler);
-                document.removeEventListener('touchmove', sessionMoveHandler);
-                document.removeEventListener('touchend', sessionEndHandler);
                 if ('PointerEvent' in window) {
                     document.removeEventListener('pointermove', sessionMoveHandler);
                     document.removeEventListener('pointerup', sessionEndHandler);
+                } else {
+                    document.removeEventListener('mousemove', sessionMoveHandler);
+                    document.removeEventListener('mouseup', sessionEndHandler);
+                    document.removeEventListener('touchmove', sessionMoveHandler);
+                    document.removeEventListener('touchend', sessionEndHandler);
                 }
             };
             
-            // Add unique listeners for this session
-            document.addEventListener('mousemove', sessionMoveHandler);
-            document.addEventListener('mouseup', sessionEndHandler);
-            document.addEventListener('touchmove', sessionMoveHandler, { passive: false });
-            document.addEventListener('touchend', sessionEndHandler);
+            // Add unique listeners for this session - use pointer events if available, otherwise mouse/touch
             if ('PointerEvent' in window) {
                 document.addEventListener('pointermove', sessionMoveHandler, { passive: false });
                 document.addEventListener('pointerup', sessionEndHandler);
+            } else {
+                document.addEventListener('mousemove', sessionMoveHandler);
+                document.addEventListener('mouseup', sessionEndHandler);
+                document.addEventListener('touchmove', sessionMoveHandler, { passive: false });
+                document.addEventListener('touchend', sessionEndHandler);
             }
         };
         
-        // Attach start events to the element
-        element.addEventListener('mousedown', handleStart);
-        element.addEventListener('touchstart', handleStart, { passive: false });
-        // Also add pointer events for better mobile support
+        // Attach start events to the element - use pointer events if available, otherwise fallback to mouse/touch
         if ('PointerEvent' in window) {
             element.addEventListener('pointerdown', handleStart);
+        } else {
+            element.addEventListener('mousedown', handleStart);
+            element.addEventListener('touchstart', handleStart, { passive: false });
         }
     }
     selectDice(diceId) {
@@ -589,16 +771,13 @@ class Game {
         }
         if (this.gameState.selectedDie) {
             // Deselect current dice
-            this.gameState.selectedDie = null;
-            this.gameState.movesRemaining = 0;
-            this.gameState.transientTile = null;
-        this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+            this.clearSelectedDie();
         }
         const dice = this.dice.find(d => d.id === diceId);
         if (dice) {
             this.gameState.selectedDie = dice;
             this.gameState.movesRemaining = dice.value;
+            this.gameState.trailCells = []; // Clear trail for new selection
             // Initialize transient tile at dice's current position
             this.gameState.transientTile = {
                 position: dice.position,
@@ -674,6 +853,12 @@ class Game {
         }
         const newPosition = this.rowColToPosition(newRow, newCol);
         const diceAtPosition = this.getDiceAtPosition(newPosition);
+        
+        // Can't move back through trail cells
+        if (this.gameState.trailCells.includes(newPosition)) {
+            return false;
+        }
+        
         // If it's the last move, allow landing on another dice for collision
         // Otherwise, can't move to a position with another dice
         if (isLastMove) {
@@ -687,15 +872,32 @@ class Game {
         if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0)
             return;
         const currentPosition = this.gameState.transientTile.position;
-        const isLastMove = this.gameState.movesRemaining === 1;
-        if (!this.canMoveInDirection(currentPosition, direction, isLastMove)) {
-            return; // Invalid move
-        }
         const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
         const [deltaRow, deltaCol] = direction;
         const newRow = currentRow + deltaRow;
         const newCol = currentCol + deltaCol;
         const newPosition = this.rowColToPosition(newRow, newCol);
+        
+        // Check if we're backtracking to the last position in trail
+        const trailLength = this.gameState.trailCells.length;
+        if (trailLength > 0 && newPosition === this.gameState.trailCells[trailLength - 1]) {
+            // This is a backtrack move - undo the last step
+            this.gameState.trailCells.pop(); // Remove the last trail position
+            this.gameState.transientTile.position = newPosition;
+            this.gameState.movesRemaining++; // Add back a move
+            this.render();
+            return;
+        }
+        
+        const isLastMove = this.gameState.movesRemaining === 1;
+        if (!this.canMoveInDirection(currentPosition, direction, isLastMove)) {
+            return; // Invalid move
+        }
+        
+        // Add current position to trail before moving (so we can't move back)
+        if (!this.gameState.trailCells.includes(currentPosition)) {
+            this.gameState.trailCells.push(currentPosition);
+        }
         
         // Move the transient tile
         this.gameState.transientTile.position = newPosition;
@@ -763,12 +965,13 @@ class Game {
         setTimeout(() => {
             this.dice = this.dice.filter(d => d.id !== movingDice.id && d.id !== targetDice.id);
             // Reset game state
-            this.gameState.selectedDie = null;
-            this.gameState.movesRemaining = 0;
-            this.gameState.transientTile = null;
-            this.gameState.inputMethod = null;
-            this.gameState.delayGameOverCheck = false; // Allow game over check now
+            this.clearSelectedDie();
             this.render();
+            
+            // After deletion, focus the top-left dice if any remain
+            if (this.dice.length > 0 && !this.isGameOver()) {
+                this.selectTopLeftDice();
+            }
         }, 400); // Match the CSS spin animation duration - same as replacement
     }
     animateReplacement(movingDice, targetDice) {
@@ -805,6 +1008,8 @@ class Game {
             
             // Auto-select the new dice only if game is not over AND we used keyboard
             if (!this.isGameOver() && this.gameState.inputMethod === 'keyboard') {
+                // Clear transient state first, then re-select the new dice
+                this.clearTransientState();
                 this.gameState.selectedDie = targetDice;
                 this.gameState.movesRemaining = targetDice.value;
                 this.gameState.transientTile = {
@@ -814,11 +1019,7 @@ class Game {
                 };
             }
             else {
-                this.gameState.selectedDie = null;
-                this.gameState.movesRemaining = 0;
-                this.gameState.transientTile = null;
-                this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+                this.clearSelectedDie();
             }
             
             // Clear input method after move completion
@@ -869,15 +1070,9 @@ class Game {
                 currentDiceEl.offsetHeight;
                 currentDiceEl.classList.add('bouncing');
             }
-            // Wait for bounce animation, then reselect (die is already at start position)
+            // Wait for bounce animation, then clear selection completely
             setTimeout(() => {
-                this.gameState.selectedDie = returningDice;
-                this.gameState.movesRemaining = returningDice.value;
-                this.gameState.transientTile = {
-                    position: startPos,
-                    value: returningDice.value,
-                    originalDiceId: returningDice.id
-                };
+                this.clearSelectedDie();
                 this.render();
             }, 300); // Match faster animation duration
         });
