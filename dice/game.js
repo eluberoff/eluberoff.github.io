@@ -225,7 +225,7 @@ class Game {
     }
     async copyToClipboard(text) {
         try {
-            // Method 1: Modern clipboard API
+            // Modern clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
                 this.showShareFeedback('Puzzle URL copied to clipboard!');
@@ -233,30 +233,9 @@ class Game {
             }
         }
         catch (err) {
-            console.log('Clipboard API failed:', err);
+            // Fallback: Just show the URL update message
+            this.showShareFeedback('Puzzle URL updated. Copy from address bar.');
         }
-        try {
-            // Method 2: Legacy execCommand method
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            const successful = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            if (successful) {
-                this.showShareFeedback('Puzzle URL copied to clipboard!');
-                return;
-            }
-        }
-        catch (err) {
-            console.log('execCommand failed:', err);
-        }
-        // Fallback: Just show the URL update message
-        this.showShareFeedback('Puzzle URL updated. Copy from address bar.');
     }
     showShareFeedback(message) {
         const statusEl = document.getElementById('gameStatus');
@@ -750,11 +729,9 @@ class Game {
             this.handleDiceCollision(movingDice, targetDice, finalPosition);
         }
         else {
-            // No collision, return to start after brief pause
+            // No collision, return to start immediately
             this.render(); // Show final position first
-            setTimeout(() => {
-                this.returnToStart();
-            }, 300);
+            this.returnToStart();
         }
     }
     handleDiceCollision(movingDice, targetDice, finalPosition) {
@@ -773,18 +750,18 @@ class Game {
         }
     }
     animateDestruction(movingDice, targetDice) {
-        // Add destroying animation to both dice
+        // Use the exact same green spin animation as value changes
         const movingElement = document.querySelector(`[data-dice-id="${movingDice.id}"]`);
         const targetElement = document.querySelector(`[data-dice-id="${targetDice.id}"]`);
         
         if (movingElement) {
-            movingElement.classList.add('destroying');
+            movingElement.classList.add('spinning');
         }
         if (targetElement) {
-            targetElement.classList.add('destroying');
+            targetElement.classList.add('spinning');
         }
         
-        // Wait for animation to complete before removing dice
+        // Wait for spin animation to complete, then remove dice (no red destruction phase)
         setTimeout(() => {
             this.dice = this.dice.filter(d => d.id !== movingDice.id && d.id !== targetDice.id);
             // Reset game state
@@ -792,10 +769,9 @@ class Game {
             this.gameState.movesRemaining = 0;
             this.gameState.transientTile = null;
             this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
             this.gameState.delayGameOverCheck = false; // Allow game over check now
             this.render();
-        }, 800); // Match the CSS animation duration
+        }, 400); // Match the CSS spin animation duration - same as replacement
     }
     animateReplacement(movingDice, targetDice) {
         const difference = Math.abs(movingDice.value - targetDice.value);

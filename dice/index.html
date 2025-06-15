@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Disappearing Dice</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
             padding: 20px;
@@ -139,7 +143,7 @@
             background: #ccc;
         }
         .dice.bouncing {
-            animation: bounce 0.3s ease-in-out;
+            animation: spin-error 0.4s ease-in-out;
         }
         .dice.destroying {
             animation: destroy 0.8s ease-in-out forwards;
@@ -230,10 +234,19 @@
         .share-btn:hover {
             background: #7b1fa2;
         }
-        @keyframes bounce {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        @keyframes spin-error {
+            0% { 
+                transform: scale(1) rotate(0deg); 
+                background: white;
+            }
+            50% { 
+                transform: scale(1.3) rotate(180deg); 
+                background: #f44336;
+            }
+            100% { 
+                transform: scale(1) rotate(360deg); 
+                background: white;
+            }
         }
         @keyframes destroy {
             0% { 
@@ -278,11 +291,22 @@
         /* Mobile specific styles */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 0;
+                height: 100vh; /* Use exact height instead of min-height */
+                align-items: flex-start;
+                background: #444; /* Use the lighter gray background */
+                overflow: hidden; /* Prevent any overflow scrolling */
             }
             
             #gameContainer {
                 padding: 20px;
+                background: #444; /* Match body background */
+                border-radius: 0; /* Remove border radius */
+                box-shadow: none; /* Remove shadow */
+                max-width: 100%;
+                width: 100%;
+                height: 100vh; /* Use exact height instead of min-height */
+                overflow-y: auto; /* Allow scrolling within container if needed */
             }
             
             h1 {
@@ -338,6 +362,6 @@
         <h1>Disappearing Dice</h1>
         <div id="gameContent"></div>
     </div>
-    <script src="game.js?v=1.4.5"></script>
+    <script src="game.js?v=1.5.2"></script>
 </body>
 </html>
