@@ -415,13 +415,8 @@ class Game {
     }
     
     attachInteractionHandler(element) {
-        let startX, startY;
-        let isDragging = false;
-        let moveHandler;
-        let endHandler;
-        
         const handleStart = (e) => {
-            if (this.isGameOver() || this.gameState.dragging) {
+            if (this.isGameOver() || this.gameState.dragging || this.gameState.delayGameOverCheck) {
                 return;
             }
             
@@ -477,6 +472,11 @@ class Game {
                 return;
             }
             
+            // Set up drag session with unique handlers to prevent collision
+            let startX, startY;
+            let actuallyMoved = false; // Track if user actually performed drag moves
+            const sessionId = Date.now() + Math.random(); // Unique session identifier
+            
             if (e instanceof TouchEvent) {
                 if (e.touches.length > 0) {
                     startX = e.touches[0].clientX;
@@ -487,10 +487,8 @@ class Game {
                 startY = e.clientY;
             }
             
-            isDragging = false;
-            
-            // Create move handler for this drag session
-            moveHandler = (e) => {
+            // Create unique move handler for this session
+            const sessionMoveHandler = (e) => {
                 if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0) return;
                 
                 e.preventDefault();
@@ -514,12 +512,11 @@ class Game {
                 const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                 
                 // Start dragging if moved enough (smaller threshold for mobile)
-                if (!isDragging && distance > 5) {
-                    isDragging = true;
+                if (!this.gameState.dragging && distance > 5) {
                     this.gameState.dragging = true;
                 }
                 
-                if (isDragging) {
+                if (this.gameState.dragging) {
                     // Find which cell the touch/mouse is currently over
                     const elementAtPoint = document.elementFromPoint(currentX, currentY);
                     if (elementAtPoint) {
@@ -529,50 +526,51 @@ class Game {
                             if (!isNaN(targetPosition)) {
                                 // Use the same logic as click-to-move
                                 this.gameState.inputMethod = 'pointer';
-                                this.moveToPosition(targetPosition);
+                                if (this.moveToPosition(targetPosition)) {
+                                    actuallyMoved = true; // Mark that we actually moved
+                                }
                             }
                         }
                     }
                 }
             };
             
-            // Create end handler for this drag session
-            endHandler = () => {
-                // Reset if we were dragging and stopped with moves remaining
-                if (isDragging && this.gameState.movesRemaining > 0 && this.gameState.selectedDie) {
+            // Create unique end handler for this session
+            const sessionEndHandler = () => {
+                // Only reset if we actually performed drag moves AND have moves remaining
+                if (actuallyMoved && this.gameState.movesRemaining > 0 && this.gameState.selectedDie && !this.gameState.delayGameOverCheck) {
                     // Clear selection and transient tile
                     this.gameState.selectedDie = null;
                     this.gameState.movesRemaining = 0;
                     this.gameState.transientTile = null;
-        this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
+                    this.gameState.inputMethod = null;
+                    this.gameState.delayGameOverCheck = false;
                     this.render();
                 }
                 
-                if (isDragging) {
+                if (this.gameState.dragging) {
                     this.gameState.dragging = false;
-                    isDragging = false;
                 }
                 
-                // Remove listeners when drag ends
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', endHandler);
-                document.removeEventListener('touchmove', moveHandler);
-                document.removeEventListener('touchend', endHandler);
+                // Remove only this session's listeners
+                document.removeEventListener('mousemove', sessionMoveHandler);
+                document.removeEventListener('mouseup', sessionEndHandler);
+                document.removeEventListener('touchmove', sessionMoveHandler);
+                document.removeEventListener('touchend', sessionEndHandler);
                 if ('PointerEvent' in window) {
-                    document.removeEventListener('pointermove', moveHandler);
-                    document.removeEventListener('pointerup', endHandler);
+                    document.removeEventListener('pointermove', sessionMoveHandler);
+                    document.removeEventListener('pointerup', sessionEndHandler);
                 }
             };
             
-            // Add listeners only during drag session
-            document.addEventListener('mousemove', moveHandler);
-            document.addEventListener('mouseup', endHandler);
-            document.addEventListener('touchmove', moveHandler, { passive: false });
-            document.addEventListener('touchend', endHandler);
+            // Add unique listeners for this session
+            document.addEventListener('mousemove', sessionMoveHandler);
+            document.addEventListener('mouseup', sessionEndHandler);
+            document.addEventListener('touchmove', sessionMoveHandler, { passive: false });
+            document.addEventListener('touchend', sessionEndHandler);
             if ('PointerEvent' in window) {
-                document.addEventListener('pointermove', moveHandler, { passive: false });
-                document.addEventListener('pointerup', endHandler);
+                document.addEventListener('pointermove', sessionMoveHandler, { passive: false });
+                document.addEventListener('pointerup', sessionEndHandler);
             }
         };
         
@@ -825,7 +823,6 @@ class Game {
             
             // Clear input method after move completion
             this.gameState.inputMethod = null;
-        this.gameState.delayGameOverCheck = false;
             this.gameState.delayGameOverCheck = false; // Allow game over check now
             this.render();
         }, 400); // Match the CSS animation duration
