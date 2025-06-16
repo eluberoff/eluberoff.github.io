@@ -731,7 +731,7 @@ class Game {
             
             // Create unique move handler for this session
             const sessionMoveHandler = (e) => {
-                if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0) return;
+                if (!this.gameState.transientTile) return;
                 
                 e.preventDefault();
                 e.stopPropagation();
@@ -779,8 +779,8 @@ class Game {
             
             // Create unique end handler for this session
             const sessionEndHandler = () => {
-                // Only reset if we actually performed drag moves AND have moves remaining
-                if (actuallyMoved && this.gameState.movesRemaining > 0 && this.gameState.selectedDie && !this.gameState.delayGameOverCheck) {
+                // Only reset if we actually performed drag moves
+                if (actuallyMoved && this.gameState.selectedDie && !this.gameState.delayGameOverCheck) {
                     // Clear selection and transient tile
                     this.clearSelectedDie();
                     this.render();
@@ -1155,7 +1155,7 @@ class Game {
         }, 400); // Match the CSS animation duration
     }
     moveToPosition(targetPosition) {
-        if (!this.gameState.transientTile || this.gameState.movesRemaining <= 0) {
+        if (!this.gameState.transientTile) {
             return false;
         }
         
