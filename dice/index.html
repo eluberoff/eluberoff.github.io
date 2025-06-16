@@ -70,6 +70,45 @@
             transform: scale(1.2);
         }
         
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .undo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #555;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid #666;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        
+        .undo-icon:hover:not(:disabled),
+        .undo-icon:focus:not(:disabled) {
+            background: #666;
+            border-color: #777;
+            transform: scale(1.2);
+        }
+        
+        .undo-icon:disabled {
+            opacity: 0.4;
+            cursor: default;
+            transform: none !important;
+        }
+        
         /* Modal Styles */
         .modal {
             display: none;
@@ -313,6 +352,15 @@
             opacity: 0.6;
             cursor: default;
         }
+        .dice.stranded {
+            background: #d9c4a0;
+            color: #666;
+            opacity: 0.7;
+        }
+        .dice.stranded.selected {
+            background: #ffb74d;
+            box-shadow: 0 0 10px rgba(255, 183, 77, 0.6);
+        }
         .cell.valid-move {
             transition: all 0.2s ease;
         }
@@ -478,12 +526,6 @@
                 font-size: 20px;
             }
             
-            .help-icon {
-                width: 28px;
-                height: 28px;
-                font-size: 16px;
-            }
-            
             .modal-content {
                 margin: 10% auto;
                 padding: 20px;
@@ -550,7 +592,10 @@
     <div id="gameContainer">
         <div id="header">
             <h1>Disappearing Dice</h1>
-            <button id="helpButton" class="help-icon">?</button>
+            <div class="header-buttons">
+                <button id="undoButton" class="undo-icon" disabled>⤺</button>
+                <button id="helpButton" class="help-icon">?</button>
+            </div>
         </div>
         <div id="gameContent"></div>
     </div>
@@ -577,6 +622,6 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.6.0"></script>
+    <script src="game.js?v=1.7.0"></script>
 </body>
 </html>
