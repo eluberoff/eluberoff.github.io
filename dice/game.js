@@ -117,12 +117,12 @@ class Game {
         const subtitleElement = document.getElementById('puzzleSubtitle');
         
         if (this.isAdminMode) {
-            titleElement.textContent = 'Dicey';
+            titleElement.textContent = 'Dice Destroyer';
             subtitleElement.textContent = '';
         } else {
             const puzzleNumber = this.getDailyPuzzleNumber();
             const formattedDate = this.getFormattedDate();
-            titleElement.textContent = `Dicey #${puzzleNumber}`;
+            titleElement.textContent = `Dice Destroyer #${puzzleNumber}`;
             subtitleElement.textContent = formattedDate;
         }
     }
@@ -230,12 +230,13 @@ class Game {
         this.gameState.inputMethod = null;
         this.gameState.delayGameOverCheck = false;
         this.gameState.trailCells = [];
+        this.clearTargetPreview();
     }
     
     clearSelectedDie() {
         this.gameState.selectedDie = null;
         this.clearTransientState();
-        // Note: Target preview is NOT cleared here - only in specific circumstances
+        // Note: Target preview is cleared via clearTransientState()
     }
     
     setTargetPreview(diceId) {
@@ -304,9 +305,9 @@ class Game {
             
         const buttonsHTML = `
             <div class="button-container">
-                <button id="undoButton" class="game-btn undo-btn" disabled>Undo</button>
-                <button id="resetButton" class="game-btn reset-btn" disabled>Restart</button>
-                <button id="hintButton" class="game-btn hint-btn" disabled>Hint</button>
+                <button id="undoButton" class="game-btn undo-btn">Undo</button>
+                <button id="resetButton" class="game-btn reset-btn">Restart</button>
+                <button id="hintButton" class="game-btn hint-btn">Hint</button>
                 ${newButtonHTML}
                 ${shareButtonHTML}
             </div>
@@ -586,10 +587,10 @@ class Game {
         // Create the solution share message
         let puzzleTitle;
         if (this.isAdminMode) {
-            puzzleTitle = 'Dicey';
+            puzzleTitle = 'Dice Destroyer';
         } else {
             const puzzleNumber = this.getDailyPuzzleNumber();
-            puzzleTitle = `Dicey #${puzzleNumber}`;
+            puzzleTitle = `Dice Destroyer #${puzzleNumber}`;
         }
         
         const stepsText = `Solved in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try)'}`;
@@ -1308,7 +1309,6 @@ class Game {
                 const targetRow = parseInt(targetPos[1]) - 1;
                 const targetPosition = targetRow * 5 + targetCol;
                 targetDie = this.dice.find(die => die.position === targetPosition);
-                console.log('Hint: Target die:', targetDie);
             }
             
             // Use setTimeout to avoid race conditions with other click handlers
@@ -1317,26 +1317,24 @@ class Game {
                 if (targetDie) {
                     this.setTargetPreview(targetDie.id);
                 }
-                console.log('Hint: Selection completed for die:', hintDie.id);
             }, 10); // Small delay to ensure other event handlers complete first
         } else {
-            console.log('Hint: No die found at position', position);
-            console.log('Current dice positions:', this.dice.map(d => ({id: d.id, pos: d.position, chess: this.positionToChessNotation(d.position)})));
         }
     }
     
     updateUndoButton() {
         const undoButton = document.getElementById('undoButton');
         if (undoButton) {
-            undoButton.disabled = this.gameState.history.length === 0;
+            // Keep undo button always enabled
+            undoButton.disabled = false;
         }
     }
     
     updateStartOverButton() {
         const startOverButton = document.getElementById('resetButton');
         if (startOverButton) {
-            // Same logic as undo button - enabled when there's move history
-            startOverButton.disabled = this.gameState.history.length === 0;
+            // Keep restart button always enabled
+            startOverButton.disabled = false;
         }
     }
     
@@ -1377,8 +1375,8 @@ class Game {
     updateHintButton() {
         const hintButton = document.getElementById('hintButton');
         if (hintButton) {
-            // Hint button disabled when game is over OR no moves have been made yet
-            hintButton.disabled = this.isGameOver() || this.gameState.history.length === 0;
+            // Hint button only disabled when game is over
+            hintButton.disabled = this.isGameOver();
         }
     }
     
