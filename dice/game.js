@@ -1,3 +1,23 @@
+// Hardcoded daily puzzles (curated for solvability)
+const DAILY_PUZZLES = [
+    'MTgsMTIsOCw3LDExLDE2fDMsNSwyLDYsNCw0',           // Day 1 (June 16, 2025)
+    'MTYsMTIsMTMsNiw4LDExfDYsNSwyLDQsMiw1',           // Day 2
+    'MTIsMTMsNywxNiwxNyw2fDIsMiw1LDIsMyw0',           // Day 3
+    'OCwxOCwxMiwxNyw2LDEzfDYsMSwzLDYsMSwx',           // Day 4
+    'MTEsOCwxMyw2LDEyLDE2fDMsMSw1LDUsMywy',           // Day 5 (fixed)
+    'NiwxMyw3LDExLDE2LDE4fDIsNiw0LDEsNSw2',           // Day 6
+    'MTEsMTcsMTgsNiw4LDEyfDEsMywyLDIsNSw1',           // Day 7
+    'OCwxNiwxMSwxNyw3LDEzfDYsMSw1LDQsNCwy',           // Day 8
+    'MTEsMTcsOCwxNiwxMiw2fDMsNiw2LDIsMSw2',           // Day 9
+    'MTEsMTgsNyw2LDEzLDEyfDUsMywyLDEsMSwy',           // Day 10
+    'MTYsNiw3LDgsMTcsMTN8MiwzLDMsMSwxLDQ=',           // Day 11 (URL decoded)
+    'MTEsMTIsNiw4LDEzLDd8MSwzLDMsMSw0LDY=',           // Day 12 (URL decoded)
+    'MTYsNiwxMiwxNywxMSwxOHwxLDMsMywxLDUsMQ==',       // Day 13 (URL decoded)
+    'MTMsMTcsMTgsMTEsNywxNnw2LDUsMSwxLDMsNA==',       // Day 14 (URL decoded)
+    'MTIsMTEsMTYsMTgsOCwxN3wxLDIsNSwxLDMsNA==',       // Day 15 (URL decoded)
+    'MTYsNiwxMywxMiw4LDd8NCwxLDEsMSw0LDM='            // Day 16 (URL decoded)
+];
+
 "use strict";
 
 class Game {
@@ -14,22 +34,139 @@ class Game {
             lastInputMethod: null, // Remember the previous input method to handle mixed navigation
             delayGameOverCheck: false, // Delay game over overlay until animations complete
             trailCells: [], // Array of positions that have been visited during current movement
-            history: [] // Array of previous game states for undo functionality
+            history: [], // Array of previous game states for undo functionality
+            emojiSequence: [], // Array of emojis representing the moves made during the game
+            totalSteps: 0, // Total number of dice movement steps
+            usedAssists: false, // Track if undo, reset, or backtracking was used
+            targetPreviewDiceId: null, // Store which die has the target preview
+            hintMessageTimeout: null // Store timeout for hint message
         };
+        
+        // Emoji mapping for move tracking
+        this.EMOJI_MAP = {
+            1: '1️⃣',
+            2: '2️⃣', 
+            3: '3️⃣',
+            4: '4️⃣',
+            5: '5️⃣',
+            6: '6️⃣',
+            capture: '❇️',
+            explosion: '💥'
+        };
+        
+        // Check if we're in admin mode
+        this.isAdminMode = this.checkAdminMode();
+        
+        // Initialize seeded random number generator for daily puzzles
+        this.seedRandom = this.createSeededRandom();
+        
         this.gameContainer = document.getElementById('gameContent');
+        this.solutionDisplay = null; // Cache for solution display element
         this.init();
     }
+    checkAdminMode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.has('admin');
+    }
+    
+    getTodayEasternDate() {
+        const today = new Date();
+        return new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    }
+    
+    getDailyPuzzleNumber() {
+        // Calculate days since game launch (June 16, 2025 = puzzle #1)
+        const launchDate = new Date('2025-06-16T00:00:00-05:00'); // EDT
+        const todayEastern = this.getTodayEasternDate();
+        
+        // Reset to start of day for accurate day counting
+        const todayStart = new Date(todayEastern.getFullYear(), todayEastern.getMonth(), todayEastern.getDate());
+        const launchStart = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate());
+        
+        const daysDiff = Math.floor((todayStart - launchStart) / (1000 * 60 * 60 * 24));
+        const puzzleNumber = Math.max(1, daysDiff + 1); // Ensure minimum puzzle #1
+        
+        // Cycle through available puzzles (16 puzzles available)
+        return ((puzzleNumber - 1) % DAILY_PUZZLES.length) + 1;
+    }
+    
+    getDailyPuzzleData() {
+        const puzzleNumber = this.getDailyPuzzleNumber();
+        const puzzleIndex = puzzleNumber - 1; // Convert to 0-based index
+        const encodedPuzzle = DAILY_PUZZLES[puzzleIndex];
+        return this.decodePuzzleState(encodedPuzzle);
+    }
+    
+    getFormattedDate() {
+        const easternDate = this.getTodayEasternDate();
+        return easternDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric',
+            timeZone: 'America/New_York'
+        });
+    }
+    
+    createSeededRandom() {
+        // Only used in admin mode for random puzzle generation
+        return () => Math.random();
+    }
+    
+    updateGameTitle() {
+        const titleElement = document.getElementById('gameTitle');
+        const subtitleElement = document.getElementById('puzzleSubtitle');
+        
+        if (this.isAdminMode) {
+            titleElement.textContent = 'Dicey';
+            subtitleElement.textContent = '';
+        } else {
+            const puzzleNumber = this.getDailyPuzzleNumber();
+            const formattedDate = this.getFormattedDate();
+            titleElement.textContent = `Dicey #${puzzleNumber}`;
+            subtitleElement.textContent = formattedDate;
+        }
+    }
+    
     init() {
         // Check if there's a shared puzzle in URL
         if (!this.loadFromUrl()) {
-            // No shared puzzle, generate random one
-            this.placeDice();
+            // No shared puzzle, use daily puzzle or generate random one
+            if (this.isAdminMode) {
+                // Admin mode: generate random puzzle
+                this.placeDice();
+            } else {
+                // Daily mode: use hardcoded daily puzzle
+                this.loadDailyPuzzle();
+            }
         }
+        this.updateGameTitle();
         this.render();
         this.setupEventListeners();
     }
+    
+    loadDailyPuzzle() {
+        const puzzleData = this.getDailyPuzzleData();
+        if (puzzleData) {
+            // Create dice from daily puzzle data
+            this.dice = puzzleData.positions.map((position, index) => ({
+                value: puzzleData.values[index],
+                position: position,
+                id: `dice-${index}`
+            }));
+            // Store initial configuration for reset
+            this.initialDice = this.dice.map(dice => ({ ...dice }));
+            // Clear undo history and emoji sequence for daily puzzle
+            this.gameState.history = [];
+            this.gameState.emojiSequence = [];
+            this.gameState.totalSteps = 0;
+            this.gameState.usedAssists = false;
+        } else {
+            // Fallback to random generation if puzzle data is invalid
+            this.placeDice();
+        }
+    }
     getRandomDiceValue() {
-        return Math.floor(Math.random() * 6) + 1;
+        return Math.floor(this.seedRandom() * 6) + 1;
     }
     getInnerPositions() {
         const positions = [];
@@ -45,7 +182,7 @@ class Game {
         const selectedPositions = [];
         // Select 6 random positions from the inner 3x3 area
         while (selectedPositions.length < 6) {
-            const randomIndex = Math.floor(Math.random() * innerPositions.length);
+            const randomIndex = Math.floor(this.seedRandom() * innerPositions.length);
             const position = innerPositions[randomIndex];
             if (!selectedPositions.includes(position)) {
                 selectedPositions.push(position);
@@ -98,6 +235,42 @@ class Game {
     clearSelectedDie() {
         this.gameState.selectedDie = null;
         this.clearTransientState();
+        // Note: Target preview is NOT cleared here - only in specific circumstances
+    }
+    
+    setTargetPreview(diceId) {
+        // Store the target preview in game state
+        this.gameState.targetPreviewDiceId = diceId;
+        
+        // Apply the preview class
+        this.applyTargetPreview();
+    }
+    
+    clearTargetPreview() {
+        // Clear from game state
+        this.gameState.targetPreviewDiceId = null;
+        
+        // Remove target preview class from all dice
+        const targetElements = document.querySelectorAll('.target-preview');
+        targetElements.forEach(element => {
+            element.classList.remove('target-preview');
+        });
+    }
+    
+    applyTargetPreview() {
+        // Remove target preview from all dice first
+        const targetElements = document.querySelectorAll('.target-preview');
+        targetElements.forEach(element => {
+            element.classList.remove('target-preview');
+        });
+        
+        // Apply target preview to the stored dice ID if it exists
+        if (this.gameState.targetPreviewDiceId) {
+            const targetElement = document.querySelector(`[data-dice-id="${this.gameState.targetPreviewDiceId}"]`);
+            if (targetElement) {
+                targetElement.classList.add('target-preview');
+            }
+        }
     }
     
     hasMovedFromStart() {
@@ -114,15 +287,28 @@ class Game {
         } else {
             this.renderGrid();
         }
+        
+        // Reapply target preview after rendering (since DOM elements get recreated)
+        this.applyTargetPreview();
     }
     
     renderInitial() {
         // Render the entire page structure once
+        const newButtonHTML = this.isAdminMode 
+            ? '<button id="newGameButton" class="game-btn new-game-btn">New</button>'
+            : '';
+            
+        const shareButtonHTML = this.isAdminMode 
+            ? '<button id="shareButton" class="game-btn share-btn">Share</button>'
+            : '';
+            
         const buttonsHTML = `
             <div class="button-container">
-                <button id="resetButton" class="game-btn reset-btn">Reset</button>
-                <button id="newGameButton" class="game-btn new-game-btn">New</button>
-                <button id="shareButton" class="game-btn share-btn">Share</button>
+                <button id="undoButton" class="game-btn undo-btn" disabled>Undo</button>
+                <button id="resetButton" class="game-btn reset-btn" disabled>Restart</button>
+                <button id="hintButton" class="game-btn hint-btn" disabled>Hint</button>
+                ${newButtonHTML}
+                ${shareButtonHTML}
             </div>
             <div id="shareMessage"></div>
         `;
@@ -130,6 +316,14 @@ class Game {
         this.gameContainer.innerHTML = '<div id="grid"></div>' + buttonsHTML;
         this.attachButtonListeners();
         this.renderGrid();
+        
+        // Create solution display element if in admin mode
+        if (this.isAdminMode) {
+            this.solutionDisplay = document.createElement('div');
+            this.solutionDisplay.id = 'solutionDisplay';
+            this.gameContainer.appendChild(this.solutionDisplay);
+            this.updateSolutionDisplay();
+        }
     }
     
     renderGrid() {
@@ -217,23 +411,32 @@ class Game {
         if (isGameOverState) {
             const finalScore = this.getFinalScore();
             const finalDiceHTML = this.dice.map(dice => 
-                `<div class="final-dice">${dice.value}</div>`
+                `<div class="final-dice">${this.EMOJI_MAP[dice.value]}</div>`
             ).join('');
             
             if (finalScore === 0) {
-                // Perfect score celebration!
+                // Perfect score celebration with emoji sequence!
+                const emojiSequenceHTML = this.gameState.emojiSequence.length > 0 
+                    ? `<div class="emoji-sequence">${this.gameState.emojiSequence.join('')}</div>`
+                    : '';
+                    
                 gridHTML += `
                     <div id="gameOverOverlay" class="win-celebration">
-                        <div class="win-title">🎉 You Win! 🎉</div>
-                        <div class="win-subtitle">Perfect Score!</div>
+                        <div class="win-title">Success!</div>
+                        <div class="win-subtitle">Cleared in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try!)'}</div>
+                        ${emojiSequenceHTML}
                         <div class="final-dice-container">${finalDiceHTML}</div>
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>
+                            <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
+                        </div>
                     </div>
                 `;
             } else {
-                // Regular game over
+                // Stranded score celebration
                 gridHTML += `
-                    <div id="gameOverOverlay">
-                        <div class="game-over-score">Your score: ${finalScore}</div>
+                    <div id="gameOverOverlay" class="stranded-celebration">
+                        <div class="stranded-title">Stranded Score:</div>
                         <div class="final-dice-container">${finalDiceHTML}</div>
                     </div>
                 `;
@@ -258,6 +461,15 @@ class Game {
                 const overlay = document.getElementById('gameOverOverlay');
                 if (overlay) {
                     overlay.classList.add('show');
+                    // Update buttons when game over screen appears
+                    this.updateButtons();
+                    // Set up share solution button if it exists (for win popup)
+                    const shareSolutionButton = document.getElementById('shareSolutionButton');
+                    if (shareSolutionButton) {
+                        shareSolutionButton.addEventListener('click', () => {
+                            this.shareSolution();
+                        });
+                    }
                 }
             }, 100); // Quick delay to let the final state be visible first
         }
@@ -266,6 +478,10 @@ class Game {
         const resetButton = document.getElementById('resetButton');
         const newGameButton = document.getElementById('newGameButton');
         const shareButton = document.getElementById('shareButton');
+        const shareSolutionButton = document.getElementById('shareSolutionButton');
+        const undoButton = document.getElementById('undoButton');
+        const hintButton = document.getElementById('hintButton');
+        
         if (resetButton) {
             resetButton.addEventListener('click', () => {
                 this.resetToInitialState();
@@ -281,28 +497,56 @@ class Game {
                 this.sharePuzzle();
             });
         }
+        if (undoButton) {
+            undoButton.addEventListener('click', () => {
+                this.undo();
+            });
+        }
+        if (hintButton) {
+            hintButton.addEventListener('click', () => {
+                this.showHint();
+            });
+        }
     }
     resetToInitialState() {
-        // Reset dice to initial configuration
+        // Mark that reset was used (counts as assist)
+        this.gameState.usedAssists = true;
+        
+        // Reset dice to initial configuration (whatever was originally loaded)
         this.dice = this.initialDice.map(dice => ({ ...dice }));
+
         // Reset game state
         this.clearSelectedDie();
-        // Clear undo history
+        this.clearTargetPreview(); // Clear hint when resetting
+        this.clearHintMessage(); // Clear any hint message
+        // Clear undo history and emoji sequence
         this.gameState.history = [];
-        this.updateUndoButton();
+        this.gameState.emojiSequence = [];
+        this.gameState.totalSteps = 0;
+        this.updateButtons();
         this.render();
+        this.updateSolutionDisplay(); // Update solutions after reset
     }
     startNewGame() {
-        // Generate completely new dice configuration
+        // Only allow new games in admin mode
+        if (!this.isAdminMode) {
+            return;
+        }
+        
+        // Generate completely new dice configuration (admin mode only)
         this.placeDice();
         // Reset game state
         this.clearSelectedDie();
-        // Clear undo history
+        // Clear undo history and emoji sequence
         this.gameState.history = [];
-        this.updateUndoButton();
+        this.gameState.emojiSequence = [];
+        this.gameState.totalSteps = 0;
+        this.gameState.usedAssists = false;
+        this.updateButtons();
         // Clear URL parameters for new game
         this.clearUrlParameters();
         this.render();
+        this.updateSolutionDisplay(); // Update solutions after new game
     }
     sharePuzzle() {
         const puzzleState = this.encodePuzzleState();
@@ -329,6 +573,49 @@ class Game {
     
     showShareMessage(message) {
         const messageEl = document.getElementById('shareMessage');
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.style.opacity = '1';
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+            }, 2000);
+        }
+    }
+    
+    shareSolution() {
+        // Create the solution share message
+        let puzzleTitle;
+        if (this.isAdminMode) {
+            puzzleTitle = 'Dicey';
+        } else {
+            const puzzleNumber = this.getDailyPuzzleNumber();
+            puzzleTitle = `Dicey #${puzzleNumber}`;
+        }
+        
+        const stepsText = `Solved in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try)'}`;
+        const emojiSequence = this.gameState.emojiSequence.join('');
+        
+        const shareText = `${puzzleTitle}\n${stepsText}\n${emojiSequence}`;
+        
+        this.copyToClipboardSolution(shareText);
+    }
+    
+    async copyToClipboardSolution(text) {
+        try {
+            // Modern clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                this.showSolutionShareMessage('Solution copied to clipboard!');
+                return;
+            }
+        }
+        catch (err) {
+            this.showSolutionShareMessage('Could not copy to clipboard');
+        }
+    }
+    
+    showSolutionShareMessage(message) {
+        const messageEl = document.getElementById('shareSolutionMessage');
         if (messageEl) {
             messageEl.textContent = message;
             messageEl.style.opacity = '1';
@@ -390,8 +677,11 @@ class Game {
         }));
         // Store initial configuration for reset
         this.initialDice = this.dice.map(dice => ({ ...dice }));
-        // Clear undo history for new puzzle
+        // Clear undo history and emoji sequence for new puzzle
         this.gameState.history = [];
+        this.gameState.emojiSequence = [];
+        this.gameState.totalSteps = 0;
+        this.gameState.usedAssists = false;
         return true;
     }
     cleanupAnimationClasses() {
@@ -419,31 +709,32 @@ class Game {
             });
         }
         
-        // Set up undo button
-        const undoButton = document.getElementById('undoButton');
-        if (undoButton) {
-            undoButton.addEventListener('click', () => {
-                this.undo();
-            });
-            // Initialize button state (disabled at start)
-            this.updateUndoButton();
-        }
+        // Set up undo button (now handled in attachButtonListeners)
+        this.updateButtons();
         
-        const closeModal = () => {
+        const closeModal = (returnFocus = false) => {
             helpModal.style.display = 'none';
-            // Return focus to help button when modal closes
-            helpButton.focus();
+            // Only return focus to help button if explicitly requested (keyboard navigation)
+            if (returnFocus) {
+                helpButton.focus();
+            }
         };
         
         if (closeButton && helpModal) {
-            closeButton.addEventListener('click', closeModal);
+            closeButton.addEventListener('click', () => closeModal(false)); // No focus return on click
+            closeButton.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    closeModal(true); // Return focus on keyboard close
+                }
+            });
         }
         
         if (helpModal) {
             // Close modal when clicking outside of modal content
             helpModal.addEventListener('click', (e) => {
                 if (e.target === helpModal) {
-                    closeModal();
+                    closeModal(false); // No focus return on outside click
                 }
             });
         }
@@ -464,13 +755,14 @@ class Game {
             if (e.key === 'Escape') {
                 // First check if modal is open
                 if (helpModal && helpModal.style.display === 'block') {
-                    closeModal();
+                    closeModal(true); // Return focus on keyboard close
                     return;
                 }
                 // Then check if game has selected die
                 if (this.gameState.selectedDie) {
                     // Reset all game state (die is already at start position)
                     this.clearSelectedDie();
+                    this.clearTargetPreview(); // Clear hint when pressing Escape
                     this.render();
                     return;
                 }
@@ -828,8 +1120,9 @@ class Game {
             return;
         }
         if (this.gameState.selectedDie) {
-            // Deselect current dice
+            // Deselect current dice and clear target preview (selecting different die)
             this.clearSelectedDie();
+            this.clearTargetPreview();
         }
         const dice = this.dice.find(d => d.id === diceId);
         if (dice) {
@@ -885,25 +1178,34 @@ class Game {
         return distance <= moves && (distance % 2 === moves % 2);
     }
     isGameOver() {
-        // Only check when 3 or fewer dice remain
-        if (this.dice.length > 3) {
-            return false;
-        }
-        
         // If a dice is selected with moves remaining 0 and transient tile exists, game is not over
         if (this.gameState.selectedDie && this.gameState.movesRemaining === 0 && this.gameState.transientTile) {
             return false;
         }
         
-        // Check if any dice can reach any other dice
+        // Check if the current score is 0 (perfect solution found)
+        const currentScore = this.dice.reduce((sum, die) => sum + die.value, 0);
+        if (currentScore === 0) {
+            return true; // Game won!
+        }
+        
+        // Check if any dice can reach any other dice (any moves possible)
+        const gameState = {
+            dice: this.dice.map(die => ({
+                id: die.id,
+                value: die.value,
+                position: die.position
+            }))
+        };
+        
         for (let i = 0; i < this.dice.length; i++) {
             for (let j = 0; j < this.dice.length; j++) {
-                if (i !== j && this.canDiceReachDice(this.dice[i], this.dice[j])) {
+                if (i !== j && this.canDiceReachDiceWithPath(this.dice[i], this.dice[j], gameState)) {
                     return false; // Found a possible move
                 }
             }
         }
-        return true; // No dice can reach any other dice
+        return true; // No dice can reach any other dice - truly no moves possible
     }
     getFinalScore() {
         return this.dice.reduce((sum, dice) => sum + dice.value, 0);
@@ -917,14 +1219,11 @@ class Game {
                 value: die.value,
                 position: die.position
             })),
-            initialDice: this.initialDice.map(die => ({
-                id: die.id,
-                value: die.value,
-                position: die.position
-            }))
+            emojiSequence: [...this.gameState.emojiSequence],
+            totalSteps: this.gameState.totalSteps
         };
         this.gameState.history.push(stateCopy);
-        this.updateUndoButton();
+        this.updateButtons();
     }
     
     undo() {
@@ -932,19 +1231,98 @@ class Game {
             return;
         }
         
+        // Mark that undo was used (counts as assist)
+        this.gameState.usedAssists = true;
+        
         // Restore the previous state
         const previousState = this.gameState.history.pop();
         this.dice = previousState.dice;
-        this.initialDice = previousState.initialDice;
+        // Don't restore initialDice - it should never change from original puzzle
+        this.gameState.emojiSequence = previousState.emojiSequence;
+        this.gameState.totalSteps = previousState.totalSteps;
         
         // Clear any active movement state
         this.clearSelectedDie();
+        this.clearTargetPreview(); // Clear hint when undoing
+        this.clearHintMessage(); // Clear any hint message
         
         // Re-render the game
         this.render();
         
         // Update undo button state
-        this.updateUndoButton();
+        this.updateButtons();
+        this.updateSolutionDisplay(); // Update solutions after undo
+    }
+    
+    showHint() {
+        // Mark that hint was used (counts as assist)
+        this.gameState.usedAssists = true;
+        
+        // Find the first solution
+        const solutions = this.findAllSolutions();
+        console.log('Hint: Found', solutions.length, 'solutions');
+        
+        if (solutions.length === 0) {
+            console.log('Hint: No solutions available');
+            this.showHintMessage("No solutions exist from here. Press undo to go back a step.");
+            return; // No solutions available
+        }
+        
+        // Get the first move of the first solution
+        const firstSolution = solutions[0];
+        const firstMove = firstSolution[0];
+        console.log('Hint: First move is:', firstMove);
+        
+        // Parse the first move to extract the starting position
+        // Format is like: "A1(3) -> B2(4)"
+        const moveMatch = firstMove.match(/^([A-E][1-5])\(\d+\)/);
+        if (!moveMatch) {
+            console.log('Hint: Could not parse move:', firstMove);
+            return; // Couldn't parse move
+        }
+        
+        const startPos = moveMatch[1]; // e.g., "A1"
+        console.log('Hint: Starting position:', startPos);
+        
+        // Convert chess notation back to position number
+        const col = startPos.charCodeAt(0) - 'A'.charCodeAt(0); // A=0, B=1, etc.
+        const row = parseInt(startPos[1]) - 1; // 1=0, 2=1, etc. (we use natural numbering)
+        const position = row * 5 + col;
+        console.log('Hint: Calculated position:', position, 'from row:', row, 'col:', col);
+        
+        // Find the die at this position
+        const hintDie = this.dice.find(die => die.position === position);
+        console.log('Hint: Found die:', hintDie);
+        
+        if (hintDie) {
+            // Clear any current selection and select the hint die
+            this.clearSelectedDie();
+            console.log('Hint: Selecting die with id:', hintDie.id);
+            
+            // Parse the target position from the first move
+            const targetMatch = firstMove.match(/-> ([A-E][1-5])\(\d+\)/);
+            let targetDie = null;
+            if (targetMatch) {
+                const targetPos = targetMatch[1];
+                const targetCol = targetPos.charCodeAt(0) - 'A'.charCodeAt(0);
+                const targetRow = parseInt(targetPos[1]) - 1;
+                const targetPosition = targetRow * 5 + targetCol;
+                targetDie = this.dice.find(die => die.position === targetPosition);
+                console.log('Hint: Target die:', targetDie);
+            }
+            
+            // Use setTimeout to avoid race conditions with other click handlers
+            setTimeout(() => {
+                this.selectDice(hintDie.id);
+                if (targetDie) {
+                    this.setTargetPreview(targetDie.id);
+                }
+                console.log('Hint: Selection completed for die:', hintDie.id);
+            }, 10); // Small delay to ensure other event handlers complete first
+        } else {
+            console.log('Hint: No die found at position', position);
+            console.log('Current dice positions:', this.dice.map(d => ({id: d.id, pos: d.position, chess: this.positionToChessNotation(d.position)})));
+        }
     }
     
     updateUndoButton() {
@@ -952,6 +1330,62 @@ class Game {
         if (undoButton) {
             undoButton.disabled = this.gameState.history.length === 0;
         }
+    }
+    
+    updateStartOverButton() {
+        const startOverButton = document.getElementById('resetButton');
+        if (startOverButton) {
+            // Same logic as undo button - enabled when there's move history
+            startOverButton.disabled = this.gameState.history.length === 0;
+        }
+    }
+    
+    showHintMessage(message) {
+        const messageEl = document.getElementById('shareMessage');
+        if (messageEl) {
+            // Clear any existing timeout
+            if (this.gameState.hintMessageTimeout) {
+                clearTimeout(this.gameState.hintMessageTimeout);
+                this.gameState.hintMessageTimeout = null;
+            }
+            
+            messageEl.textContent = message;
+            messageEl.style.opacity = '1';
+            
+            // Hide the message after 3 seconds
+            this.gameState.hintMessageTimeout = setTimeout(() => {
+                messageEl.style.opacity = '0';
+                this.gameState.hintMessageTimeout = null;
+            }, 3000);
+        }
+    }
+    
+    clearHintMessage() {
+        // Clear the timeout if it exists
+        if (this.gameState.hintMessageTimeout) {
+            clearTimeout(this.gameState.hintMessageTimeout);
+            this.gameState.hintMessageTimeout = null;
+        }
+        
+        // Hide the message immediately
+        const messageEl = document.getElementById('shareMessage');
+        if (messageEl) {
+            messageEl.style.opacity = '0';
+        }
+    }
+    
+    updateHintButton() {
+        const hintButton = document.getElementById('hintButton');
+        if (hintButton) {
+            // Hint button disabled when game is over OR no moves have been made yet
+            hintButton.disabled = this.isGameOver() || this.gameState.history.length === 0;
+        }
+    }
+    
+    updateButtons() {
+        this.updateUndoButton();
+        this.updateStartOverButton();
+        this.updateHintButton();
     }
     canMoveInDirection(currentPosition, direction, isLastMove = false) {
         const [currentRow, currentCol] = this.positionToRowCol(currentPosition);
@@ -994,6 +1428,7 @@ class Game {
         const trailLength = this.gameState.trailCells.length;
         if (trailLength > 0 && newPosition === this.gameState.trailCells[trailLength - 1]) {
             // This is a backtrack move - undo the last step
+            this.gameState.usedAssists = true; // Mark that backtracking was used
             this.gameState.trailCells.pop(); // Remove the last trail position
             this.gameState.transientTile.position = newPosition;
             this.gameState.movesRemaining++; // Add back a move
@@ -1061,6 +1496,21 @@ class Game {
         // Delay game over check until animations complete
         this.gameState.delayGameOverCheck = true;
         
+        // Clear target preview when move completes with collision
+        this.clearTargetPreview();
+        
+        // Add the moving die's value to step count (this represents the move that just completed)
+        this.gameState.totalSteps += movingDice.value;
+        
+        // Track emoji for this collision
+        // Always add the die that moved
+        this.gameState.emojiSequence.push(this.EMOJI_MAP[movingDice.value]);
+        
+        if (movingDice.value === targetDice.value) {
+            // Same values: both dice disappear → add explosion emoji
+            this.gameState.emojiSequence.push(this.EMOJI_MAP.explosion);
+        }
+        
         // First render to show the collision
         this.render();
         if (movingDice.value === targetDice.value) {
@@ -1090,11 +1540,9 @@ class Game {
             // Reset game state
             this.clearSelectedDie();
             this.render();
+            this.updateSolutionDisplay(); // Update solutions after dice removal
             
-            // After deletion, focus the top-left dice if any remain
-            if (this.dice.length > 0 && !this.isGameOver()) {
-                this.selectTopLeftDice();
-            }
+            // After deletion, leave no die selected
         }, 400); // Match the CSS spin animation duration - same as replacement
     }
     animateReplacement(movingDice, targetDice) {
@@ -1152,6 +1600,7 @@ class Game {
             this.gameState.inputMethod = null;
             this.gameState.delayGameOverCheck = false; // Allow game over check now
             this.render();
+            this.updateSolutionDisplay(); // Update solutions after dice value change
         }, 400); // Match the CSS animation duration
     }
     moveToPosition(targetPosition) {
@@ -1208,6 +1657,302 @@ class Game {
                 }
             }, 300); // Match faster animation duration
         });
+    }
+    
+    // === SOLUTION FINDER METHODS ===
+    
+    positionToChessNotation(position) {
+        const [row, col] = this.positionToRowCol(position);
+        const file = String.fromCharCode('A'.charCodeAt(0) + col); // A-E
+        const rank = (row + 1).toString(); // 1-5 (natural row numbering)
+        return file + rank;
+    }
+    
+    // Check if there's a valid path from one position to another without crossing other dice
+    canReachWithValidPath(fromPosition, toPosition, gameState, stepsRemaining, visitedPositions = new Set()) {
+        // Base case: if we've reached the target
+        if (fromPosition === toPosition) {
+            return stepsRemaining === 0; // Must use exact number of steps
+        }
+        
+        // Base case: if we're out of steps
+        if (stepsRemaining <= 0) {
+            return false;
+        }
+        
+        // Base case: if we've been to this position before (avoid loops)
+        if (visitedPositions.has(fromPosition)) {
+            return false;
+        }
+        
+        // Add current position to visited
+        const newVisited = new Set(visitedPositions);
+        newVisited.add(fromPosition);
+        
+        // Get all adjacent positions
+        const [row, col] = this.positionToRowCol(fromPosition);
+        const directions = [
+            [-1, 0], // up
+            [1, 0],  // down
+            [0, -1], // left
+            [0, 1]   // right
+        ];
+        
+        for (const [deltaRow, deltaCol] of directions) {
+            const newRow = row + deltaRow;
+            const newCol = col + deltaCol;
+            
+            // Check bounds
+            if (newRow < 0 || newRow >= 5 || newCol < 0 || newCol >= 5) {
+                continue;
+            }
+            
+            const newPosition = this.rowColToPosition(newRow, newCol);
+            
+            // Check if there's a die at this position (blocking our path)
+            const diceAtPosition = gameState.dice.find(die => die.position === newPosition);
+            
+            // We can only move to a position with a die if it's our final destination
+            // Otherwise, dice block our path
+            if (diceAtPosition && newPosition !== toPosition) {
+                continue; // This position is blocked
+            }
+            
+            // Recursively check if we can reach the target from this new position
+            if (this.canReachWithValidPath(newPosition, toPosition, gameState, stepsRemaining - 1, newVisited)) {
+                return true;
+            }
+        }
+        
+        return false; // No valid path found
+    }
+    
+    // Enhanced version of canDiceReachDice that uses actual pathfinding
+    canDiceReachDiceWithPath(fromDice, toDice, gameState) {
+        const distance = this.getTaxicabDistance(fromDice.position, toDice.position);
+        const moves = fromDice.value;
+        
+        // Quick elimination: if distance > moves or wrong parity, impossible
+        if (distance > moves || (distance % 2 !== moves % 2)) {
+            return false;
+        }
+        
+        // Now check if there's actually a valid path
+        return this.canReachWithValidPath(fromDice.position, toDice.position, gameState, moves);
+    }
+    
+    simulateMove(gameState, fromDiceIndex, toDiceIndex) {
+        // Create a deep copy of the game state
+        const newState = {
+            dice: gameState.dice.map(die => ({
+                id: die.id,
+                value: die.value,
+                position: die.position
+            }))
+        };
+        
+        const fromDice = newState.dice[fromDiceIndex];
+        const toDice = newState.dice[toDiceIndex];
+        
+        // Calculate collision result
+        if (fromDice.value === toDice.value) {
+            // Same values - both dice disappear
+            // Remove both dice (remove higher index first to avoid index shifting)
+            const indicesToRemove = [fromDiceIndex, toDiceIndex].sort((a, b) => b - a);
+            indicesToRemove.forEach(index => newState.dice.splice(index, 1));
+        } else {
+            // Different values - replace with difference
+            const newValue = Math.abs(fromDice.value - toDice.value);
+            // Remove the moving die, update the target die
+            newState.dice.splice(fromDiceIndex, 1);
+            // Find the target die in the modified array
+            const adjustedToIndex = toDiceIndex > fromDiceIndex ? toDiceIndex - 1 : toDiceIndex;
+            newState.dice[adjustedToIndex].value = newValue;
+        }
+        
+        return newState;
+    }
+    
+    findAllSolutions(gameState = null, moveSequence = []) {
+        if (!gameState) {
+            gameState = {
+                dice: this.dice.map(die => ({
+                    id: die.id,
+                    value: die.value,
+                    position: die.position
+                }))
+            };
+        }
+        
+        // Base case: if score is 0, we found a solution
+        const currentScore = gameState.dice.reduce((sum, die) => sum + die.value, 0);
+        if (currentScore === 0) {
+            return [moveSequence.slice()]; // Return copy of current sequence
+        }
+        
+        // Find all valid moves: dice that can reach other dice with actual pathfinding
+        const validMoves = [];
+        for (let i = 0; i < gameState.dice.length; i++) {
+            for (let j = 0; j < gameState.dice.length; j++) {
+                if (i !== j) {
+                    const fromDie = gameState.dice[i];
+                    const toDie = gameState.dice[j];
+                    
+                    // Check if there's a valid path (this includes distance and parity checking)
+                    if (this.canDiceReachDiceWithPath(fromDie, toDie, gameState)) {
+                        const distance = this.getTaxicabDistance(fromDie.position, toDie.position);
+                        validMoves.push({
+                            fromIndex: i,
+                            toIndex: j,
+                            fromDie: fromDie,
+                            toDie: toDie,
+                            distance: distance
+                        });
+                    }
+                }
+            }
+        }
+        
+        // If no valid moves, this branch has no solution
+        if (validMoves.length === 0) {
+            return [];
+        }
+        
+        // Try each valid move
+        const allSolutions = [];
+        
+        for (const move of validMoves) {
+            const fromPos = this.positionToChessNotation(move.fromDie.position);
+            const toPos = this.positionToChessNotation(move.toDie.position);
+            const moveDesc = `${fromPos}(${move.fromDie.value}) -> ${toPos}(${move.toDie.value})`;
+            
+            // Simulate the move
+            const newState = this.simulateMove(gameState, move.fromIndex, move.toIndex);
+            const newMoveSequence = [...moveSequence, moveDesc];
+            
+            // Recursively find solutions from this new state
+            const solutions = this.findAllSolutions(newState, newMoveSequence);
+            allSolutions.push(...solutions);
+        }
+        
+        return allSolutions;
+    }
+    
+    // Fast version that stops after finding first solution (for game-over detection)
+    hasAnySolution(gameState = null, moveSequence = []) {
+        if (!gameState) {
+            gameState = {
+                dice: this.dice.map(die => ({
+                    id: die.id,
+                    value: die.value,
+                    position: die.position
+                }))
+            };
+        }
+        
+        // Base case: if score is 0, we found a solution
+        const currentScore = gameState.dice.reduce((sum, die) => sum + die.value, 0);
+        if (currentScore === 0) {
+            return true; // Found at least one solution
+        }
+        
+        // Find all valid moves: dice that can reach other dice with actual pathfinding
+        const validMoves = [];
+        for (let i = 0; i < gameState.dice.length; i++) {
+            for (let j = 0; j < gameState.dice.length; j++) {
+                if (i !== j) {
+                    const fromDie = gameState.dice[i];
+                    const toDie = gameState.dice[j];
+                    
+                    // Check if there's a valid path (this includes distance and parity checking)
+                    if (this.canDiceReachDiceWithPath(fromDie, toDie, gameState)) {
+                        validMoves.push({
+                            fromIndex: i,
+                            toIndex: j,
+                            fromDie: fromDie,
+                            toDie: toDie
+                        });
+                    }
+                }
+            }
+        }
+        
+        // If no valid moves, this branch has no solution
+        if (validMoves.length === 0) {
+            return false;
+        }
+        
+        // Try each valid move until we find any solution
+        for (const move of validMoves) {
+            // Simulate the move
+            const newState = this.simulateMove(gameState, move.fromIndex, move.toIndex);
+            
+            // Recursively check if this path leads to any solution
+            if (this.hasAnySolution(newState, moveSequence)) {
+                return true; // Found at least one solution, stop searching
+            }
+        }
+        
+        return false; // No solutions found
+    }
+    
+    updateSolutionDisplay() {
+        if (!this.isAdminMode || !this.solutionDisplay) {
+            return;
+        }
+        
+        // Show current puzzle state
+        let displayText = `<div style="margin-top: 20px; padding: 10px; background: #444; border-radius: 5px; font-size: 12px; color: #ccc;">`;
+        displayText += `<strong>Admin Mode - Current Puzzle:</strong><br>`;
+        
+        // Create visual grid
+        displayText += `<div style="font-family: monospace; margin: 10px 0;">`;
+        displayText += `   A B C D E<br>`;
+        for (let row = 0; row < 5; row++) {
+            const rank = row + 1;
+            displayText += `${rank}  `;
+            for (let col = 0; col < 5; col++) {
+                const position = row * 5 + col;
+                const die = this.dice.find(d => d.position === position);
+                if (die) {
+                    displayText += `${die.value} `;
+                } else {
+                    displayText += `. `;
+                }
+            }
+            displayText += `<br>`;
+        }
+        displayText += `</div>`;
+        
+        displayText += `Dice: `;
+        this.dice.forEach(die => {
+            const pos = this.positionToChessNotation(die.position);
+            displayText += `${pos}(${die.value}) `;
+        });
+        displayText += `<br><br>`;
+        
+        const solutions = this.findAllSolutions();
+        const solutionCount = solutions.length;
+        
+        displayText += `<strong>Found ${solutionCount} possible solution${solutionCount !== 1 ? 's' : ''}</strong>`;
+        
+        if (solutionCount > 0 && solutionCount <= 10) {
+            // Show actual solutions if there are 10 or fewer
+            displayText += `<br><br>`;
+            solutions.forEach((solution, index) => {
+                displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
+            });
+        } else if (solutionCount > 10) {
+            // Just show the first 10 for brevity
+            displayText += `<br><br>`;
+            solutions.slice(0, 10).forEach((solution, index) => {
+                displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
+            });
+            displayText += `<em>... and ${solutionCount - 10} more solutions</em>`;
+        }
+        
+        displayText += `</div>`;
+        this.solutionDisplay.innerHTML = displayText;
     }
 }
 // Start the game when the page loads

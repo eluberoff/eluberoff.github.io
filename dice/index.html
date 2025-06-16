@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disappearing Dice</title>
+    <title>Dicey</title>
     <style>
         * {
             box-sizing: border-box;
@@ -33,7 +33,7 @@
         #header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 20px;
             width: min(80vw, 400px);
             margin-left: auto;
@@ -43,6 +43,15 @@
             margin: 0;
             text-align: left;
             font-weight: 500;
+        }
+        #header .game-info {
+            text-align: left;
+        }
+        #header .puzzle-subtitle {
+            font-size: 14px;
+            color: #ccc;
+            margin: 2px 0 0 0;
+            font-weight: normal;
         }
         .help-icon {
             width: 32px;
@@ -76,34 +85,21 @@
             align-items: center;
         }
         
-        .undo-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #555;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid #666;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
+        .undo-btn {
+            background: #e67e22;
         }
-        
-        .undo-icon:hover:not(:disabled),
-        .undo-icon:focus:not(:disabled) {
+        .undo-btn:disabled {
             background: #666;
-            border-color: #777;
-            transform: scale(1.2);
+            opacity: 0.4;
+            cursor: default;
+            transform: none !important;
         }
         
-        .undo-icon:disabled {
+        .hint-btn {
+            background: #b83dba;
+        }
+        .hint-btn:disabled {
+            background: #666;
             opacity: 0.4;
             cursor: default;
             transform: none !important;
@@ -165,7 +161,7 @@
         }
         .help-section h3 {
             margin: 0 0 8px 0;
-            color: #4caf50;
+            color: #e67e22;
             font-size: 16px;
         }
         .help-section p {
@@ -222,6 +218,24 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        .stranded-celebration {
+            background: linear-gradient(45deg, #ff6b35, #f7931e, #ffd23f);
+            background-size: 300% 300%;
+            animation: warm-glow 3s ease-in-out infinite;
+        }
+        .stranded-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        @keyframes warm-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
         .final-dice-container {
             display: flex;
             gap: 8px;
@@ -230,24 +244,23 @@
             align-items: center;
         }
         .final-dice {
-            background: white;
-            color: black;
-            border-radius: 6px;
-            width: 40px;
-            height: 40px;
+            font-size: 32px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 18px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 0 2px;
         }
         
         /* Win celebration styles */
         #gameOverOverlay.win-celebration {
-            background: linear-gradient(45deg, #4caf50, #2196f3, #9c27b0, #ff9800);
-            background-size: 400% 400%;
-            animation: rainbow-bg 2s ease infinite;
+            background: linear-gradient(45deg, #7a5a87, #9070b0, #b090d0, #9a7ab2, #7a5a87);
+            background-size: 300% 300%;
+            animation: subtle-bg 4s linear infinite;
+        }
+        
+        @keyframes subtle-bg {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
         }
         .win-title {
             font-size: 32px;
@@ -262,6 +275,13 @@
             text-align: center;
             color: white;
             opacity: 0.9;
+        }
+        .emoji-sequence {
+            font-size: 32px;
+            margin: 10px 0 20px 0;
+            text-align: center;
+            line-height: 1.2;
+            letter-spacing: 4px;
         }
         
         @keyframes rainbow-bg {
@@ -335,6 +355,12 @@
             background: #ffeb3b;
             color: black;
             box-shadow: 0 0 10px rgba(255, 235, 59, 0.6);
+        }
+        .dice.target-preview {
+            background: #a5d6a7;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: none !important;
+            opacity: 1 !important;
         }
         .dice.game-over {
             background: #e0e0e0;
@@ -414,10 +440,13 @@
             transform: scale(0.98);
         }
         .reset-btn {
-            background: #4caf50;
+            background: #e74c3c;
         }
-        .reset-btn:hover {
-            background: #45a049;
+        .reset-btn:disabled {
+            background: #666;
+            opacity: 0.4;
+            cursor: default;
+            transform: none !important;
         }
         .new-game-btn {
             background: #2196f3;
@@ -437,7 +466,7 @@
             line-height: 0;
             position: relative;
             top: 16px;
-            color: #4caf50;
+            color: white;
             text-align: center;
             font-size: 14px;
             transition: opacity 0.3s ease;
@@ -591,11 +620,11 @@
 <body>
     <div id="gameContainer">
         <div id="header">
-            <h1>Disappearing Dice</h1>
-            <div class="header-buttons">
-                <button id="undoButton" class="undo-icon" disabled>⤺</button>
-                <button id="helpButton" class="help-icon">?</button>
+            <div class="game-info">
+                <h1 id="gameTitle">Dicey</h1>
+                <div id="puzzleSubtitle" class="puzzle-subtitle"></div>
             </div>
+            <button id="helpButton" class="help-icon">?</button>
         </div>
         <div id="gameContent"></div>
     </div>
@@ -622,6 +651,6 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.7.1"></script>
+    <script src="game.js?v=1.19.0"></script>
 </body>
 </html>
