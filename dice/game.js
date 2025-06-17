@@ -39,7 +39,8 @@ class Game {
             totalSteps: 0, // Total number of dice movement steps
             usedAssists: false, // Track if undo, reset, or backtracking was used
             targetPreviewDiceId: null, // Store which die has the target preview
-            hintMessageTimeout: null // Store timeout for hint message
+            hintMessageTimeout: null, // Store timeout for hint message
+            showMobileTileHints: false // Only show mobile tile hints after tap, not during drag
         };
         
         // Emoji mapping for move tracking
@@ -57,6 +58,12 @@ class Game {
         // Check if we're in admin mode
         this.isAdminMode = this.checkAdminMode();
         
+        // Check if we're in dice mode (show pips instead of numbers)
+        this.isDiceMode = this.checkDiceMode();
+        
+        // Detect if we're on a mobile device (iOS or Android)
+        this.isMobileDevice = this.detectMobileDevice();
+        
         // Initialize seeded random number generator for daily puzzles
         this.seedRandom = this.createSeededRandom();
         
@@ -67,6 +74,18 @@ class Game {
     checkAdminMode() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.has('admin');
+    }
+    
+    checkDiceMode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.has('dice');
+    }
+    
+    detectMobileDevice() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isIOS = /iphone|ipad|ipod/.test(userAgent);
+        const isAndroid = /android/.test(userAgent);
+        return isIOS || isAndroid;
     }
     
     getTodayEasternDate() {
@@ -117,12 +136,12 @@ class Game {
         const subtitleElement = document.getElementById('puzzleSubtitle');
         
         if (this.isAdminMode) {
-            titleElement.textContent = 'Dice Destroyer';
+            titleElement.textContent = 'Disappearing Dice';
             subtitleElement.textContent = '';
         } else {
             const puzzleNumber = this.getDailyPuzzleNumber();
             const formattedDate = this.getFormattedDate();
-            titleElement.textContent = `Dice Destroyer #${puzzleNumber}`;
+            titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
             subtitleElement.textContent = formattedDate;
         }
     }
@@ -230,6 +249,7 @@ class Game {
         this.gameState.inputMethod = null;
         this.gameState.delayGameOverCheck = false;
         this.gameState.trailCells = [];
+        this.gameState.showMobileTileHints = false;
         this.clearTargetPreview();
     }
     
@@ -256,6 +276,15 @@ class Game {
         targetElements.forEach(element => {
             element.classList.remove('target-preview');
         });
+    }
+    
+    generatePipsHTML() {
+        // Generate 9 pip divs for the 3x3 grid layout
+        let pipsHTML = '';
+        for (let i = 1; i <= 9; i++) {
+            pipsHTML += `<div class="pip"></div>`;
+        }
+        return pipsHTML;
     }
     
     applyTargetPreview() {
@@ -300,14 +329,18 @@ class Game {
             : '';
             
         const shareButtonHTML = this.isAdminMode 
-            ? '<button id="shareButton" class="game-btn share-btn">Share</button>'
+            ? '<button id="shareButton" class="game-btn share-btn">Save</button>'
             : '';
+            
+        const hintButtonHTML = this.isAdminMode 
+            ? ''
+            : '<button id="hintButton" class="game-btn hint-btn">Hint</button>';
             
         const buttonsHTML = `
             <div class="button-container">
                 <button id="undoButton" class="game-btn undo-btn">Undo</button>
                 <button id="resetButton" class="game-btn reset-btn">Restart</button>
-                <button id="hintButton" class="game-btn hint-btn">Hint</button>
+                ${hintButtonHTML}
                 ${newButtonHTML}
                 ${shareButtonHTML}
             </div>
@@ -330,7 +363,12 @@ class Game {
     renderGrid() {
         let gridHTML = '';
         
-        // Get valid moves for current transient tile
+        // Get clickable positions for current transient tile
+        const clickablePositions = this.gameState.transientTile && this.gameState.movesRemaining > 0 
+            ? this.getClickablePositions(this.gameState.transientTile.position, this.gameState.movesRemaining) 
+            : [];
+        
+        // Get valid moves for desktop hover styling (always show on desktop)
         const validMoves = this.gameState.transientTile && this.gameState.movesRemaining > 0 
             ? this.getValidMoves(this.gameState.transientTile.position, this.gameState.movesRemaining) 
             : [];
@@ -352,11 +390,22 @@ class Game {
                 // Show trail highlighting for visited cells
                 if (this.gameState.trailCells.includes(position)) {
                     cellClasses.push('trail');
+                    
+                    // Add backtrack-valid class only for the last trail position (valid backtrack)
+                    const trailLength = this.gameState.trailCells.length;
+                    if (trailLength > 0 && position === this.gameState.trailCells[trailLength - 1]) {
+                        cellClasses.push('backtrack-valid');
+                    }
                 }
                 
-                // Show valid move indicators for empty squares
-                if (validMoves.includes(position) && !dice) {
+                // Show desktop hover styling for valid moves (always on desktop)
+                if (!this.isMobileDevice && validMoves.includes(position) && !dice) {
                     cellClasses.push('valid-move');
+                }
+                
+                // Show mobile tile highlighting (mobile only, and only after tap not drag)
+                if (this.isMobileDevice && this.gameState.showMobileTileHints && clickablePositions.includes(position)) {
+                    cellClasses.push('clickable-move');
                 }
                 
                 let cellContent = '';
@@ -368,7 +417,9 @@ class Game {
                     if (isSelected) classes.push('selected');
                     // Add disabled styling if out of moves and not at original position
                     if (this.gameState.movesRemaining === 0) classes.push('stranded');
-                    cellContent = `<div class="${classes.join(' ')}" data-dice-id="${this.gameState.transientTile.originalDiceId}" tabindex="0">${this.gameState.transientTile.value}</div>`;
+                    const diceContent = this.isDiceMode ? this.generatePipsHTML() : this.gameState.transientTile.value;
+                    const dataValue = this.isDiceMode ? `data-value="${this.gameState.transientTile.value}"` : '';
+                    cellContent = `<div class="${classes.join(' ')}" data-dice-id="${this.gameState.transientTile.originalDiceId}" ${dataValue} tabindex="0">${diceContent}</div>`;
                 } 
                 // Show original dice if no transient tile is here
                 else if (dice) {
@@ -381,16 +432,9 @@ class Game {
                         const isSelected = this.gameState.selectedDie?.id === dice.id;
                         const classes = ['dice'];
                         if (isSelected) classes.push('selected');
-                        // Make other dice non-interactive if current dice has moved, unless it's a valid capture target
-                        if (this.hasMovedFromStart() && !isSelected) {
-                            // Check if this dice is a valid capture target (final move landing position)
-                            const isValidCaptureTarget = this.gameState.movesRemaining === 1 && 
-                                                       validMoves.includes(position);
-                            if (!isValidCaptureTarget) {
-                                classes.push('non-interactive');
-                            }
-                        }
-                        cellContent = `<div class="${classes.join(' ')}" data-dice-id="${dice.id}" tabindex="0">${dice.value}</div>`;
+                        const diceContent = this.isDiceMode ? this.generatePipsHTML() : dice.value;
+                        const dataValue = this.isDiceMode ? `data-value="${dice.value}"` : '';
+                        cellContent = `<div class="${classes.join(' ')}" data-dice-id="${dice.id}" ${dataValue} tabindex="0">${diceContent}</div>`;
                     }
                 }
                 
@@ -400,7 +444,9 @@ class Game {
                     this.gameState.transientTile &&
                     this.gameState.transientTile.position !== position &&
                     this.gameState.movesRemaining < this.gameState.selectedDie.value) {
-                    cellContent += `<div class="dice shadow">${this.gameState.selectedDie.value}</div>`;
+                    const shadowContent = this.isDiceMode ? this.generatePipsHTML() : this.gameState.selectedDie.value;
+                    const shadowDataValue = this.isDiceMode ? `data-value="${this.gameState.selectedDie.value}"` : '';
+                    cellContent += `<div class="dice shadow" ${shadowDataValue}>${shadowContent}</div>`;
                 }
                 
                 gridHTML += `<div class="${cellClasses.join(' ')}" data-position="${position}">${cellContent}</div>`;
@@ -434,11 +480,28 @@ class Game {
                     </div>
                 `;
             } else {
-                // Stranded score celebration
+                // Stranded score celebration with fancy display logic
+                let strandedSubtitle, strandedDiceDisplay;
+                if (this.dice.length === 1) {
+                    // Single die: show emoji in subtitle
+                    const dieEmoji = this.EMOJI_MAP[this.dice[0].value];
+                    strandedSubtitle = `Stranded score: ${dieEmoji}`;
+                    strandedDiceDisplay = ''; // No separate dice display
+                } else {
+                    // Multiple dice: show total number in subtitle, emojis below
+                    strandedSubtitle = `Stranded score: ${finalScore}`;
+                    strandedDiceDisplay = `<div class="final-dice-container">${finalDiceHTML}</div>`;
+                }
+                
                 gridHTML += `
                     <div id="gameOverOverlay" class="stranded-celebration">
-                        <div class="stranded-title">Stranded Score:</div>
-                        <div class="final-dice-container">${finalDiceHTML}</div>
+                        <div class="stranded-title">Game over</div>
+                        <div class="win-subtitle">${strandedSubtitle}</div>
+                        ${strandedDiceDisplay}
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>
+                            <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
+                        </div>
                     </div>
                 `;
             }
@@ -587,16 +650,33 @@ class Game {
         // Create the solution share message
         let puzzleTitle;
         if (this.isAdminMode) {
-            puzzleTitle = 'Dice Destroyer';
+            puzzleTitle = 'Disappearing Dice';
         } else {
             const puzzleNumber = this.getDailyPuzzleNumber();
-            puzzleTitle = `Dice Destroyer #${puzzleNumber}`;
+            puzzleTitle = `Disappearing Dice #${puzzleNumber}`;
         }
         
-        const stepsText = `Solved in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try)'}`;
-        const emojiSequence = this.gameState.emojiSequence.join('');
+        const finalScore = this.getFinalScore();
+        let shareText;
         
-        const shareText = `${puzzleTitle}\n${stepsText}\n${emojiSequence}`;
+        if (finalScore === 0) {
+            // Perfect score
+            const resultText = `Solved in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try)'}`;
+            const emojiSequence = this.gameState.emojiSequence.join('');
+            shareText = `${puzzleTitle}\n${resultText}\n${emojiSequence}`;
+        } else {
+            // Stranded score with fancy logic
+            if (this.dice.length === 1) {
+                // Single die: show emoji in the score line
+                const dieEmoji = this.EMOJI_MAP[this.dice[0].value];
+                shareText = `${puzzleTitle}\nStranded score: ${dieEmoji}`;
+            } else {
+                // Multiple dice: show total, then emojis on next line
+                const resultText = `Stranded score: ${finalScore}`;
+                const diceEmojis = this.dice.map(dice => this.EMOJI_MAP[dice.value]).join('');
+                shareText = `${puzzleTitle}\n${resultText}\n${diceEmojis}`;
+            }
+        }
         
         this.copyToClipboardSolution(shareText);
     }
@@ -761,10 +841,25 @@ class Game {
                 }
                 // Then check if game has selected die
                 if (this.gameState.selectedDie) {
-                    // Reset all game state (die is already at start position)
-                    this.clearSelectedDie();
-                    this.clearTargetPreview(); // Clear hint when pressing Escape
-                    this.render();
+                    // Check if the die has moved from its starting position
+                    if (this.hasMovedFromStart()) {
+                        // Die has moved - just clear movement state but keep die selected
+                        this.gameState.movesRemaining = this.gameState.selectedDie.value;
+                        this.gameState.transientTile = {
+                            position: this.gameState.selectedDie.position,
+                            value: this.gameState.selectedDie.value,
+                            originalDiceId: this.gameState.selectedDie.id
+                        };
+                        this.gameState.trailCells = [];
+                        this.gameState.showMobileTileHints = false;
+                        this.clearTargetPreview(); // Clear hint when pressing Escape
+                        this.render();
+                    } else {
+                        // Die hasn't moved - deselect entirely
+                        this.clearSelectedDie();
+                        this.clearTargetPreview(); // Clear hint when pressing Escape
+                        this.render();
+                    }
                     return;
                 }
             }
@@ -967,6 +1062,19 @@ class Game {
                 }
             }
             
+            // Priority 1.5: Check for backtrack attempt (works even with 0 moves remaining)
+            if (this.gameState.transientTile) {
+                const trailLength = this.gameState.trailCells.length;
+                const isBacktrackPosition = trailLength > 0 && position === this.gameState.trailCells[trailLength - 1];
+                
+                if (isBacktrackPosition) {
+                    this.gameState.inputMethod = 'pointer';
+                    if (this.moveToPosition(position)) {
+                        return; // Successful backtrack, no need for drag setup
+                    }
+                }
+            }
+            
             // Priority 2: Check for valid move to adjacent empty square
             if (this.gameState.transientTile && this.gameState.movesRemaining > 0) {
                 const diceAtPosition = this.getDiceAtPosition(position);
@@ -994,9 +1102,16 @@ class Game {
                 // Continue with drag setup in case user wants to drag
             } else {
                 // Clicked on empty space - check if it's a valid move or should deselect
-                if (this.gameState.selectedDie && this.gameState.movesRemaining > 0) {
-                    const validMoves = this.getValidMoves(this.gameState.transientTile.position, this.gameState.movesRemaining);
-                    if (!validMoves.includes(position)) {
+                if (this.gameState.selectedDie) {
+                    const clickablePositions = this.gameState.movesRemaining > 0 
+                        ? this.getClickablePositions(this.gameState.transientTile.position, this.gameState.movesRemaining)
+                        : [];
+                    
+                    // Also check if this is a valid backtrack position (works even with 0 moves remaining)
+                    const trailLength = this.gameState.trailCells.length;
+                    const isBacktrackPosition = trailLength > 0 && position === this.gameState.trailCells[trailLength - 1];
+                    
+                    if (!clickablePositions.includes(position) && !isBacktrackPosition) {
                         // Clicked on unreachable empty space - deselect
                         this.clearSelectedDie();
                         this.render();
@@ -1072,6 +1187,12 @@ class Game {
             
             // Create unique end handler for this session
             const sessionEndHandler = () => {
+                // If we didn't actually drag (just a tap), enable mobile tile hints
+                if (!actuallyMoved && this.isMobileDevice && this.gameState.selectedDie) {
+                    this.gameState.showMobileTileHints = true;
+                    this.render(); // Re-render to show the tile hints
+                }
+                
                 // Only reset if we actually performed drag moves
                 if (actuallyMoved && this.gameState.selectedDie && !this.gameState.delayGameOverCheck) {
                     // Clear selection and transient tile
@@ -1131,13 +1252,17 @@ class Game {
             this.gameState.movesRemaining = dice.value;
             this.gameState.trailCells = []; // Clear trail for new selection
             
-            
             // Initialize transient tile at dice's current position
             this.gameState.transientTile = {
                 position: dice.position,
                 value: dice.value,
                 originalDiceId: dice.id
             };
+            
+            // For keyboard input, immediately show mobile tile hints
+            if (this.gameState.inputMethod === 'keyboard' && this.isMobileDevice) {
+                this.gameState.showMobileTileHints = true;
+            }
         }
         this.render();
     }
@@ -1159,6 +1284,40 @@ class Game {
         }
         
         return validMoves;
+    }
+
+    getClickablePositions(fromPosition, movesRemaining) {
+        const clickablePositions = [];
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // up, down, left, right
+        const isLastMove = movesRemaining === 1;
+        
+        for (const direction of directions) {
+            const [currentRow, currentCol] = this.positionToRowCol(fromPosition);
+            const [deltaRow, deltaCol] = direction;
+            const newRow = currentRow + deltaRow;
+            const newCol = currentCol + deltaCol;
+            
+            // Check bounds
+            if (newRow < 0 || newRow >= 5 || newCol < 0 || newCol >= 5) {
+                continue;
+            }
+            
+            const newPosition = this.rowColToPosition(newRow, newCol);
+            const diceAtPosition = this.getDiceAtPosition(newPosition);
+            
+            // Can't move back through trail cells (keep trail styling, don't add clickable styling)
+            if (this.gameState.trailCells.includes(newPosition)) {
+                continue;
+            }
+            
+            // For non-final moves: only empty adjacent squares are clickable
+            // For final moves: both empty squares AND squares with dice are clickable
+            if (isLastMove || !diceAtPosition) {
+                clickablePositions.push(newPosition);
+            }
+        }
+        
+        return clickablePositions;
     }
     positionToRowCol(position) {
         return [Math.floor(position / 5), position % 5];
@@ -1325,16 +1484,19 @@ class Game {
     updateUndoButton() {
         const undoButton = document.getElementById('undoButton');
         if (undoButton) {
-            // Keep undo button always enabled
-            undoButton.disabled = false;
+            // Disable undo button when no history available
+            undoButton.disabled = this.gameState.history.length === 0;
         }
     }
     
     updateStartOverButton() {
         const startOverButton = document.getElementById('resetButton');
         if (startOverButton) {
-            // Keep restart button always enabled
-            startOverButton.disabled = false;
+            // Disable restart button when no moves have been made
+            const hasMadeAnyMoves = this.gameState.history.length > 0 || 
+                                  this.gameState.selectedDie || 
+                                  this.gameState.totalSteps > 0;
+            startOverButton.disabled = !hasMadeAnyMoves;
         }
     }
     
@@ -1771,7 +1933,7 @@ class Game {
         return newState;
     }
     
-    findAllSolutions(gameState = null, moveSequence = []) {
+    findAllSolutions(gameState = null, moveSequence = [], explored = null, maxStranded = null) {
         if (!gameState) {
             gameState = {
                 dice: this.dice.map(die => ({
@@ -1781,6 +1943,17 @@ class Game {
                 }))
             };
         }
+        
+        // Initialize explored counter and max stranded tracker if this is the root call
+        if (explored === null) {
+            explored = { count: 0 };
+        }
+        if (maxStranded === null) {
+            maxStranded = { score: 0, sequence: [], diceValues: [] };
+        }
+        
+        // Increment the count of explored move sequences
+        explored.count++;
         
         // Base case: if score is 0, we found a solution
         const currentScore = gameState.dice.reduce((sum, die) => sum + die.value, 0);
@@ -1811,8 +1984,13 @@ class Game {
             }
         }
         
-        // If no valid moves, this branch has no solution
+        // If no valid moves, check if this is a new maximum stranded score
         if (validMoves.length === 0) {
+            if (currentScore > maxStranded.score) {
+                maxStranded.score = currentScore;
+                maxStranded.sequence = moveSequence.slice();
+                maxStranded.diceValues = gameState.dice.map(die => die.value).sort((a, b) => a - b);
+            }
             return [];
         }
         
@@ -1829,7 +2007,7 @@ class Game {
             const newMoveSequence = [...moveSequence, moveDesc];
             
             // Recursively find solutions from this new state
-            const solutions = this.findAllSolutions(newState, newMoveSequence);
+            const solutions = this.findAllSolutions(newState, newMoveSequence, explored, maxStranded);
             allSolutions.push(...solutions);
         }
         
@@ -1901,7 +2079,6 @@ class Game {
         
         // Show current puzzle state
         let displayText = `<div style="margin-top: 20px; padding: 10px; background: #444; border-radius: 5px; font-size: 12px; color: #ccc;">`;
-        displayText += `<strong>Admin Mode - Current Puzzle:</strong><br>`;
         
         // Create visual grid
         displayText += `<div style="font-family: monospace; margin: 10px 0;">`;
@@ -1922,31 +2099,34 @@ class Game {
         }
         displayText += `</div>`;
         
-        displayText += `Dice: `;
-        this.dice.forEach(die => {
-            const pos = this.positionToChessNotation(die.position);
-            displayText += `${pos}(${die.value}) `;
-        });
-        displayText += `<br><br>`;
-        
-        const solutions = this.findAllSolutions();
+        const explored = { count: 0 };
+        const maxStranded = { score: 0, sequence: [], diceValues: [] };
+        const solutions = this.findAllSolutions(null, [], explored, maxStranded);
         const solutionCount = solutions.length;
+        const exploredCount = explored.count;
+        const percentage = exploredCount > 0 ? ((solutionCount / exploredCount) * 100).toFixed(3) : '0.000';
         
-        displayText += `<strong>Found ${solutionCount} possible solution${solutionCount !== 1 ? 's' : ''}</strong>`;
+        displayText += `<strong>Found ${solutionCount} possible solution${solutionCount !== 1 ? 's' : ''} (${percentage}%)</strong>`;
         
-        if (solutionCount > 0 && solutionCount <= 10) {
-            // Show actual solutions if there are 10 or fewer
+        if (solutionCount > 0 && solutionCount <= 5) {
+            // Show actual solutions if there are 5 or fewer
             displayText += `<br><br>`;
             solutions.forEach((solution, index) => {
                 displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
             });
-        } else if (solutionCount > 10) {
-            // Just show the first 10 for brevity
+        } else if (solutionCount > 5) {
+            // Just show the first 5 for brevity
             displayText += `<br><br>`;
-            solutions.slice(0, 10).forEach((solution, index) => {
+            solutions.slice(0, 5).forEach((solution, index) => {
                 displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
             });
-            displayText += `<em>... and ${solutionCount - 10} more solutions</em>`;
+            displayText += `<em>... and ${solutionCount - 5} more solutions</em>`;
+        }
+        
+        // Show maximum stranded result
+        if (maxStranded.score > 0) {
+            const diceList = maxStranded.diceValues.join(',');
+            displayText += `<br><br><strong>Max stranded=${maxStranded.score} (${diceList}):</strong> ${maxStranded.sequence.join(', ')}`;
         }
         
         displayText += `</div>`;

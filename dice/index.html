@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Destroyer</title>
+    <title>Disappearing Dice</title>
     <style>
         * {
             box-sizing: border-box;
@@ -89,20 +89,16 @@
             background: #e67e22;
         }
         .undo-btn:disabled {
-            background: #666;
-            opacity: 0.4;
-            cursor: default;
-            transform: none !important;
+            opacity: 0.5;
+            pointer-events: none;
         }
         
         .hint-btn {
             background: #b83dba;
         }
         .hint-btn:disabled {
-            background: #666;
-            opacity: 0.4;
-            cursor: default;
-            transform: none !important;
+            opacity: 0.5;
+            pointer-events: none;
         }
         
         /* Modal Styles */
@@ -225,7 +221,7 @@
         }
         .stranded-title {
             font-size: 28px;
-            font-weight: bold;
+            font-weight: 500;
             margin-bottom: 20px;
             text-align: center;
             color: white;
@@ -264,7 +260,7 @@
         }
         .win-title {
             font-size: 32px;
-            font-weight: bold;
+            font-weight: 500;
             margin-bottom: 10px;
             text-align: center;
             color: white;
@@ -330,6 +326,61 @@
             outline: none; /* Remove focus outlines */
             -webkit-tap-highlight-color: transparent; /* Remove blue tap highlight on mobile */
         }
+        
+        /* Override for dice mode - use grid layout when showing pips */
+        .dice[data-value] {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 0;
+            padding: 4px;
+            font-size: 0; /* Hide any text content when in dice mode */
+        }
+        
+        .pip {
+            width: 60%;
+            height: 60%;
+            border-radius: 50%;
+            background: #1a1a1a;
+            opacity: 0; /* Hidden by default */
+            align-self: center;
+            justify-self: center;
+            box-shadow: 
+                inset 1px 1px 2px rgba(0, 0, 0, 0.6),
+                inset -1px -1px 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        .pip.visible {
+            opacity: 1;
+        }
+        
+        /* Pip layouts for each die face */
+        .dice[data-value="1"] .pip:nth-child(5) { opacity: 1; } /* center */
+        
+        .dice[data-value="2"] .pip:nth-child(3) { opacity: 1; } /* top-right */
+        .dice[data-value="2"] .pip:nth-child(7) { opacity: 1; } /* bottom-left */
+        
+        .dice[data-value="3"] .pip:nth-child(3) { opacity: 1; } /* top-right */
+        .dice[data-value="3"] .pip:nth-child(5) { opacity: 1; } /* center */
+        .dice[data-value="3"] .pip:nth-child(7) { opacity: 1; } /* bottom-left */
+        
+        .dice[data-value="4"] .pip:nth-child(1) { opacity: 1; } /* top-left */
+        .dice[data-value="4"] .pip:nth-child(3) { opacity: 1; } /* top-right */
+        .dice[data-value="4"] .pip:nth-child(7) { opacity: 1; } /* bottom-left */
+        .dice[data-value="4"] .pip:nth-child(9) { opacity: 1; } /* bottom-right */
+        
+        .dice[data-value="5"] .pip:nth-child(1) { opacity: 1; } /* top-left */
+        .dice[data-value="5"] .pip:nth-child(3) { opacity: 1; } /* top-right */
+        .dice[data-value="5"] .pip:nth-child(5) { opacity: 1; } /* center */
+        .dice[data-value="5"] .pip:nth-child(7) { opacity: 1; } /* bottom-left */
+        .dice[data-value="5"] .pip:nth-child(9) { opacity: 1; } /* bottom-right */
+        
+        .dice[data-value="6"] .pip:nth-child(1) { opacity: 1; } /* top-left */
+        .dice[data-value="6"] .pip:nth-child(3) { opacity: 1; } /* top-right */
+        .dice[data-value="6"] .pip:nth-child(4) { opacity: 1; } /* middle-left */
+        .dice[data-value="6"] .pip:nth-child(6) { opacity: 1; } /* middle-right */
+        .dice[data-value="6"] .pip:nth-child(7) { opacity: 1; } /* bottom-left */
+        .dice[data-value="6"] .pip:nth-child(9) { opacity: 1; } /* bottom-right */
         .dice:focus {
             outline: none; /* Remove all focus outlines on game board */
         }
@@ -373,10 +424,26 @@
             transform: none !important;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .dice.non-interactive {
-            pointer-events: none;
-            opacity: 0.6;
-            cursor: default;
+        /* Desktop hover styling for clickable moves */
+        .cell.valid-move {
+            transition: all 0.2s ease;
+        }
+        .cell.valid-move:hover {
+            cursor: pointer;
+            background: #4a4a4a;
+            border: 1px solid #555;
+        }
+        
+        /* Mobile tile highlighting (only shown after tap) */
+        .cell.clickable-move {
+            background: #6a6a6a !important;
+            border: 1px solid #777 !important;
+            transition: all 0.2s ease;
+        }
+        .cell.clickable-move:hover {
+            background: #757575 !important;
+            border: 1px solid #888 !important;
+            cursor: pointer;
         }
         .dice.stranded {
             background: #d9c4a0;
@@ -387,18 +454,13 @@
             background: #ffb74d;
             box-shadow: 0 0 10px rgba(255, 183, 77, 0.6);
         }
-        .cell.valid-move {
-            transition: all 0.2s ease;
-        }
-        .cell.valid-move:hover {
-            cursor: pointer;
-            background: #4a4a4a;
-            border: 1px solid #555;
-        }
         .cell.trail {
             background: #2a4d5a;
             border: 1px solid #3a6d7a;
             transition: all 0.2s ease;
+        }
+        .cell.trail.backtrack-valid:hover {
+            cursor: pointer;
         }
         .cell.current-position {
             background: #ff9800 !important;
@@ -443,22 +505,20 @@
             background: #e74c3c;
         }
         .reset-btn:disabled {
-            background: #666;
-            opacity: 0.4;
-            cursor: default;
-            transform: none !important;
+            opacity: 0.5;
+            pointer-events: none;
         }
         .new-game-btn {
-            background: #2196f3;
-        }
-        .new-game-btn:hover {
-            background: #1976d2;
-        }
-        .share-btn {
             background: #9c27b0;
         }
-        .share-btn:hover {
+        .new-game-btn:hover {
             background: #7b1fa2;
+        }
+        .share-btn {
+            background: #2196f3;
+        }
+        .share-btn:hover {
+            background: #1976d2;
         }
         #shareMessage {
             opacity: 0;
@@ -621,7 +681,7 @@
     <div id="gameContainer">
         <div id="header">
             <div class="game-info">
-                <h1 id="gameTitle">Dice Destroyer</h1>
+                <h1 id="gameTitle">Disappearing Dice</h1>
                 <div id="puzzleSubtitle" class="puzzle-subtitle"></div>
             </div>
             <button id="helpButton" class="help-icon">?</button>
@@ -651,6 +711,6 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.6"></script>
+    <script src="game.js?v=1.19.33"></script>
 </body>
 </html>
