@@ -98,8 +98,18 @@ class Game {
     }
     
     getTodayEasternDate() {
-        const today = new Date();
-        return new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        const parts = formatter.formatToParts(now);
+        const year = parseInt(parts.find(p => p.type === 'year').value);
+        const month = parseInt(parts.find(p => p.type === 'month').value) - 1; // months are 0-based
+        const day = parseInt(parts.find(p => p.type === 'day').value);
+        return new Date(year, month, day);
     }
     
     getDailyPuzzleNumber() {
@@ -133,6 +143,11 @@ class Game {
             day: 'numeric',
             timeZone: 'America/New_York'
         });
+    }
+    
+    getCompletionMessage() {
+        const suffix = this.gameState.usedAssists ? '' : ' (first try!)';
+        return `Cleared in ${this.gameState.totalSteps} moves${suffix}`;
     }
     
     createSeededRandom() {
@@ -508,7 +523,7 @@ class Game {
                 gridHTML += `
                     <div id="gameOverOverlay" class="win-celebration">
                         <div class="win-title">Success!</div>
-                        <div class="win-subtitle">Cleared in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try!)'}</div>
+                        <div class="win-subtitle">${this.getCompletionMessage()}</div>
                         ${emojiSequenceHTML}
                         <div class="final-dice-container">${finalDiceHTML}</div>
                         <div style="margin-top: 20px; text-align: center;">
@@ -699,7 +714,7 @@ class Game {
         
         if (finalScore === 0) {
             // Perfect score
-            const resultText = `Solved in ${this.gameState.totalSteps} moves${this.gameState.usedAssists ? '' : ' (first try)'}`;
+            const resultText = this.getCompletionMessage();
             const emojiSequence = this.gameState.emojiSequence.join('');
             shareText = `${puzzleTitle}\n${resultText}\n${emojiSequence}`;
         } else {
