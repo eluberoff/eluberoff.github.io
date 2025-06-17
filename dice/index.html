@@ -114,13 +114,15 @@
         }
         .modal-content {
             background-color: #333;
-            margin: 5% auto;
+            margin: 20px auto;
             padding: 30px;
             border-radius: 10px;
-            width: 90%;
+            width: calc(100vw - 40px);
             max-width: 500px;
+            max-height: calc(100vh - 40px);
             position: relative;
             color: white;
+            overflow-y: auto;
         }
         .close {
             color: #aaa;
@@ -170,6 +172,16 @@
         }
         .help-section p:last-of-type {
             margin-bottom: 0;
+        }
+        
+        .demo-link {
+            color: #ccc;
+            text-decoration: underline;
+            transition: color 0.2s ease;
+        }
+        
+        .demo-link:hover {
+            color: white;
         }
         #grid {
             display: grid;
@@ -616,9 +628,7 @@
             }
             
             .modal-content {
-                margin: 10% auto;
                 padding: 20px;
-                width: 95%;
             }
             
             h1 {
@@ -696,21 +706,20 @@
             <h2>How to Play</h2>
             <div class="help-section">
                 <h3>Goal</h3>
-                <p>Each die must move exactly its face value in steps and land on another die, without passing through any dice along the way. Aim for the lowest score.</p>
+                <p>Move the dice to try to clear the board.</p>
             </div>
             <div class="help-section">
-                <h3>Game Rules</h3>
+                <h3>Moves</h3>
+                <p>Select a die and move it the number of steps on its face. It can only move through adjacent empty squares (no diagonals!), and must land on another die at the end.</p>
                 <p><strong>Same values:</strong> Both dice disappear</p>
                 <p><strong>Different values:</strong> Replace with the difference</p>
             </div>
-            <div class="help-section">
-                <h3>Controls</h3>
-                <p><strong>Click:</strong> Select a die, then click adjacent squares to move</p>
-                <p><strong>Drag:</strong> Select and drag through adjacent squares</p>
-                <p><strong>Keyboard:</strong> Arrow keys to move, Tab to cycle dice, Escape to cancel</p>
+            <div id="gettingStartedSection" class="help-section">
+                <h3>Getting Started</h3>
+                <p>Get a feel for the game with a <a href="?demo" target="_blank" class="demo-link">simple puzzle</a>.</p>
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.35"></script>
+    <script src="game.js?v=1.19.46"></script>
 </body>
 </html>

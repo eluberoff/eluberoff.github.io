@@ -18,6 +18,9 @@ const DAILY_PUZZLES = [
     'MTYsNiwxMywxMiw4LDd8NCwxLDEsMSw0LDM='            // Day 16 (URL decoded)
 ];
 
+// Demo puzzle for getting started (easy tutorial)
+const DEMO_PUZZLE = 'NiwxMSwxM3wxLDMsMg=='; // 1 above 3, 2 to right of 3
+
 "use strict";
 
 class Game {
@@ -57,6 +60,7 @@ class Game {
         
         // Check if we're in admin mode
         this.isAdminMode = this.checkAdminMode();
+        this.isDemoMode = this.checkDemoMode();
         
         // Check if we're in dice mode (show pips instead of numbers)
         this.isDiceMode = this.checkDiceMode();
@@ -79,6 +83,11 @@ class Game {
     checkDiceMode() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.has('dice');
+    }
+    
+    checkDemoMode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.has('demo');
     }
     
     detectMobileDevice() {
@@ -138,6 +147,9 @@ class Game {
         if (this.isAdminMode) {
             titleElement.textContent = 'Disappearing Dice';
             subtitleElement.textContent = '';
+        } else if (this.isDemoMode) {
+            titleElement.textContent = 'Disappearing Dice';
+            subtitleElement.textContent = 'Getting Started';
         } else {
             const puzzleNumber = this.getDailyPuzzleNumber();
             const formattedDate = this.getFormattedDate();
@@ -149,8 +161,11 @@ class Game {
     init() {
         // Check if there's a shared puzzle in URL
         if (!this.loadFromUrl()) {
-            // No shared puzzle, use daily puzzle or generate random one
-            if (this.isAdminMode) {
+            // Check for demo mode first
+            if (this.isDemoMode) {
+                // Demo mode: use tutorial puzzle
+                this.loadDemoPuzzle();
+            } else if (this.isAdminMode) {
                 // Admin mode: generate random puzzle
                 this.placeDice();
             } else {
@@ -184,6 +199,29 @@ class Game {
             this.placeDice();
         }
     }
+    
+    loadDemoPuzzle() {
+        const puzzleData = this.decodePuzzleState(DEMO_PUZZLE);
+        if (puzzleData) {
+            // Create dice from demo puzzle data
+            this.dice = puzzleData.positions.map((position, index) => ({
+                value: puzzleData.values[index],
+                position: position,
+                id: `dice-${index}`
+            }));
+            // Store initial configuration for reset
+            this.initialDice = this.dice.map(dice => ({ ...dice }));
+            // Clear undo history and emoji sequence for demo puzzle
+            this.gameState.history = [];
+            this.gameState.emojiSequence = [];
+            this.gameState.totalSteps = 0;
+            this.gameState.usedAssists = false;
+        } else {
+            // Fallback to random generation if demo puzzle data is invalid
+            this.placeDice();
+        }
+    }
+    
     getRandomDiceValue() {
         return Math.floor(this.seedRandom() * 6) + 1;
     }
@@ -474,7 +512,7 @@ class Game {
                         ${emojiSequenceHTML}
                         <div class="final-dice-container">${finalDiceHTML}</div>
                         <div style="margin-top: 20px; text-align: center;">
-                            <button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>
+                            ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
                             <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
                         </div>
                     </div>
@@ -499,7 +537,7 @@ class Game {
                         <div class="win-subtitle">${strandedSubtitle}</div>
                         ${strandedDiceDisplay}
                         <div style="margin-top: 20px; text-align: center;">
-                            <button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>
+                            ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
                             <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
                         </div>
                     </div>
@@ -788,6 +826,14 @@ class Game {
                     setTimeout(() => closeButton.focus(), 100);
                 }
             });
+            
+            // Hide "Getting Started" section in demo mode
+            if (this.isDemoMode) {
+                const gettingStartedSection = document.getElementById('gettingStartedSection');
+                if (gettingStartedSection) {
+                    gettingStartedSection.style.display = 'none';
+                }
+            }
         }
         
         // Set up undo button (now handled in attachButtonListeners)
