@@ -1946,18 +1946,20 @@ class Game {
         
         // Initialize explored counter and max stranded tracker if this is the root call
         if (explored === null) {
-            explored = { count: 0 };
+            explored = { count: 0, finalOutcomes: 0, solutions: 0 };
         }
         if (maxStranded === null) {
             maxStranded = { score: 0, sequence: [], diceValues: [] };
         }
         
-        // Increment the count of explored move sequences
+        // Increment the count of explored move sequences (for debugging)
         explored.count++;
         
         // Base case: if score is 0, we found a solution
         const currentScore = gameState.dice.reduce((sum, die) => sum + die.value, 0);
         if (currentScore === 0) {
+            explored.finalOutcomes++;
+            explored.solutions++;
             return [moveSequence.slice()]; // Return copy of current sequence
         }
         
@@ -1986,6 +1988,8 @@ class Game {
         
         // If no valid moves, check if this is a new maximum stranded score
         if (validMoves.length === 0) {
+            explored.finalOutcomes++;
+            
             if (currentScore > maxStranded.score) {
                 maxStranded.score = currentScore;
                 maxStranded.sequence = moveSequence.slice();
@@ -2099,14 +2103,15 @@ class Game {
         }
         displayText += `</div>`;
         
-        const explored = { count: 0 };
+        const explored = { count: 0, finalOutcomes: 0, solutions: 0 };
         const maxStranded = { score: 0, sequence: [], diceValues: [] };
         const solutions = this.findAllSolutions(null, [], explored, maxStranded);
         const solutionCount = solutions.length;
         const exploredCount = explored.count;
-        const percentage = exploredCount > 0 ? ((solutionCount / exploredCount) * 100).toFixed(3) : '0.000';
+        const percentage = explored.finalOutcomes > 0 ? ((solutionCount / explored.finalOutcomes) * 100).toFixed(3) : '0.000';
         
-        displayText += `<strong>Found ${solutionCount} possible solution${solutionCount !== 1 ? 's' : ''} (${percentage}%)</strong>`;
+        const deadEndCount = explored.finalOutcomes - solutionCount;
+        displayText += `<strong>Found ${solutionCount} solution${solutionCount !== 1 ? 's' : ''} & ${deadEndCount} dead end${deadEndCount !== 1 ? 's' : ''} (${percentage}%)</strong>`;
         
         if (solutionCount > 0 && solutionCount <= 5) {
             // Show actual solutions if there are 5 or fewer
@@ -2128,6 +2133,7 @@ class Game {
             const diceList = maxStranded.diceValues.join(',');
             displayText += `<br><br><strong>Max stranded=${maxStranded.score} (${diceList}):</strong> ${maxStranded.sequence.join(', ')}`;
         }
+        
         
         displayText += `</div>`;
         this.solutionDisplay.innerHTML = displayText;
