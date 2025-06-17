@@ -43,7 +43,8 @@ class Game {
             usedAssists: false, // Track if undo, reset, or backtracking was used
             targetPreviewDiceId: null, // Store which die has the target preview
             hintMessageTimeout: null, // Store timeout for hint message
-            showMobileTileHints: false // Only show mobile tile hints after tap, not during drag
+            showMobileTileHints: false, // Only show mobile tile hints after tap, not during drag
+            cachedSolutions: null // Store all solutions for hint randomization
         };
         
         // Emoji mapping for move tracking
@@ -180,11 +181,8 @@ class Game {
             if (this.isDemoMode) {
                 // Demo mode: use tutorial puzzle
                 this.loadDemoPuzzle();
-            } else if (this.isAdminMode) {
-                // Admin mode: generate random puzzle
-                this.placeDice();
             } else {
-                // Daily mode: use hardcoded daily puzzle
+                // Both admin and daily mode: try daily puzzle first, fallback to random
                 this.loadDailyPuzzle();
             }
         }
@@ -209,6 +207,8 @@ class Game {
             this.gameState.emojiSequence = [];
             this.gameState.totalSteps = 0;
             this.gameState.usedAssists = false;
+            // Clear solution cache for new puzzle
+            this.invalidateSolutionCache();
         } else {
             // Fallback to random generation if puzzle data is invalid
             this.placeDice();
@@ -231,6 +231,8 @@ class Game {
             this.gameState.emojiSequence = [];
             this.gameState.totalSteps = 0;
             this.gameState.usedAssists = false;
+            // Clear solution cache for new puzzle
+            this.invalidateSolutionCache();
         } else {
             // Fallback to random generation if demo puzzle data is invalid
             this.placeDice();
@@ -275,6 +277,9 @@ class Game {
         
         // Store initial configuration for reset
         this.initialDice = this.dice.map(dice => ({ ...dice }));
+        
+        // Clear solution cache for new puzzle
+        this.invalidateSolutionCache();
     }
     isInnerCell(row, col) {
         return row >= 1 && row <= 3 && col >= 1 && col <= 3;
@@ -631,6 +636,9 @@ class Game {
         
         // Reset dice to initial configuration (whatever was originally loaded)
         this.dice = this.initialDice.map(dice => ({ ...dice }));
+        
+        // Invalidate solution cache since dice state changed
+        this.invalidateSolutionCache();
 
         // Reset game state
         this.clearSelectedDie();
@@ -652,6 +660,10 @@ class Game {
         
         // Generate completely new dice configuration (admin mode only)
         this.placeDice();
+        
+        // Invalidate solution cache since dice state changed
+        this.invalidateSolutionCache();
+        
         // Reset game state
         this.clearSelectedDie();
         // Clear undo history and emoji sequence
@@ -816,6 +828,8 @@ class Game {
         this.gameState.emojiSequence = [];
         this.gameState.totalSteps = 0;
         this.gameState.usedAssists = false;
+        // Clear solution cache for new puzzle
+        this.invalidateSolutionCache();
         return true;
     }
     cleanupAnimationClasses() {
@@ -1462,6 +1476,9 @@ class Game {
         this.gameState.emojiSequence = previousState.emojiSequence;
         this.gameState.totalSteps = previousState.totalSteps;
         
+        // Invalidate solution cache since dice state changed
+        this.invalidateSolutionCache();
+        
         // Clear any active movement state
         this.clearSelectedDie();
         this.clearTargetPreview(); // Clear hint when undoing
@@ -1479,46 +1496,39 @@ class Game {
         // Mark that hint was used (counts as assist)
         this.gameState.usedAssists = true;
         
-        // Find the first solution
-        const solutions = this.findAllSolutions();
-        console.log('Hint: Found', solutions.length, 'solutions');
+        // Get all solutions using caching
+        const solutions = this.getSolutionsWithCaching();
         
         if (solutions.length === 0) {
-            console.log('Hint: No solutions available');
             this.showHintMessage("No solutions exist from here. Press undo to go back a step.");
             return; // No solutions available
         }
         
-        // Get the first move of the first solution
-        const firstSolution = solutions[0];
-        const firstMove = firstSolution[0];
-        console.log('Hint: First move is:', firstMove);
+        // Pick a random solution instead of always the first one
+        const randomIndex = Math.floor(Math.random() * solutions.length);
+        const randomSolution = solutions[randomIndex];
+        const firstMove = randomSolution[0];
         
         // Parse the first move to extract the starting position
         // Format is like: "A1(3) -> B2(4)"
         const moveMatch = firstMove.match(/^([A-E][1-5])\(\d+\)/);
         if (!moveMatch) {
-            console.log('Hint: Could not parse move:', firstMove);
             return; // Couldn't parse move
         }
         
         const startPos = moveMatch[1]; // e.g., "A1"
-        console.log('Hint: Starting position:', startPos);
         
         // Convert chess notation back to position number
         const col = startPos.charCodeAt(0) - 'A'.charCodeAt(0); // A=0, B=1, etc.
         const row = parseInt(startPos[1]) - 1; // 1=0, 2=1, etc. (we use natural numbering)
         const position = row * 5 + col;
-        console.log('Hint: Calculated position:', position, 'from row:', row, 'col:', col);
         
         // Find the die at this position
         const hintDie = this.dice.find(die => die.position === position);
-        console.log('Hint: Found die:', hintDie);
         
         if (hintDie) {
             // Clear any current selection and select the hint die
             this.clearSelectedDie();
-            console.log('Hint: Selecting die with id:', hintDie.id);
             
             // Parse the target position from the first move
             const targetMatch = firstMove.match(/-> ([A-E][1-5])\(\d+\)/);
@@ -1538,7 +1548,6 @@ class Game {
                     this.setTargetPreview(targetDie.id);
                 }
             }, 10); // Small delay to ensure other event handlers complete first
-        } else {
         }
     }
     
@@ -1758,6 +1767,10 @@ class Game {
         // Wait for spin animation to complete, then remove dice (no red destruction phase)
         setTimeout(() => {
             this.dice = this.dice.filter(d => d.id !== movingDice.id && d.id !== targetDice.id);
+            
+            // Invalidate solution cache since dice state changed
+            this.invalidateSolutionCache();
+            
             // Reset game state
             this.clearSelectedDie();
             this.render();
@@ -1776,6 +1789,9 @@ class Game {
         // Update the value and remove moving dice immediately
         targetDice.value = difference;
         this.dice = this.dice.filter(d => d.id !== movingDice.id);
+        
+        // Invalidate solution cache since dice state changed
+        this.invalidateSolutionCache();
         
         // Clear transient tile so target dice renders properly
         this.gameState.transientTile = null;
@@ -1878,6 +1894,24 @@ class Game {
                 }
             }, 300); // Match faster animation duration
         });
+    }
+    
+    // === SOLUTION CACHING METHODS ===
+    
+    getSolutionsWithCaching() {
+        // Check if we have cached solutions
+        if (this.gameState.cachedSolutions !== null) {
+            return this.gameState.cachedSolutions;
+        }
+        
+        // Calculate and cache solutions
+        const solutions = this.findAllSolutions();
+        this.gameState.cachedSolutions = solutions;
+        return solutions;
+    }
+    
+    invalidateSolutionCache() {
+        this.gameState.cachedSolutions = null;
     }
     
     // === SOLUTION FINDER METHODS ===
@@ -2007,7 +2041,7 @@ class Game {
         
         // Initialize explored counter and max stranded tracker if this is the root call
         if (explored === null) {
-            explored = { count: 0, finalOutcomes: 0, solutions: 0 };
+            explored = { count: 0, finalOutcomes: 0, solutions: 0, strandedCounts: {} };
         }
         if (maxStranded === null) {
             maxStranded = { score: 0, sequence: [], diceValues: [] };
@@ -2021,6 +2055,14 @@ class Game {
         if (currentScore === 0) {
             explored.finalOutcomes++;
             explored.solutions++;
+            
+            // Track perfect solutions in stranded counts too
+            if (explored.strandedCounts[0]) {
+                explored.strandedCounts[0]++;
+            } else {
+                explored.strandedCounts[0] = 1;
+            }
+            
             return [moveSequence.slice()]; // Return copy of current sequence
         }
         
@@ -2050,6 +2092,13 @@ class Game {
         // If no valid moves, check if this is a new maximum stranded score
         if (validMoves.length === 0) {
             explored.finalOutcomes++;
+            
+            // Track stranded score count
+            if (explored.strandedCounts[currentScore]) {
+                explored.strandedCounts[currentScore]++;
+            } else {
+                explored.strandedCounts[currentScore] = 1;
+            }
             
             if (currentScore > maxStranded.score) {
                 maxStranded.score = currentScore;
@@ -2146,8 +2195,8 @@ class Game {
         let displayText = `<div style="margin-top: 20px; padding: 10px; background: #444; border-radius: 5px; font-size: 12px; color: #ccc;">`;
         
         // Create visual grid
-        displayText += `<div style="font-family: monospace; margin: 10px 0;">`;
-        displayText += `   A B C D E<br>`;
+        displayText += `<div style="font-family: monospace; margin: 10px 0; line-height: 1.2; white-space: pre;">`;
+        displayText += `  A B C D E<br>`;
         for (let row = 0; row < 5; row++) {
             const rank = row + 1;
             displayText += `${rank}  `;
@@ -2164,9 +2213,16 @@ class Game {
         }
         displayText += `</div>`;
         
-        const explored = { count: 0, finalOutcomes: 0, solutions: 0 };
+        const explored = { count: 0, finalOutcomes: 0, solutions: 0, strandedCounts: {} };
         const maxStranded = { score: 0, sequence: [], diceValues: [] };
-        const solutions = this.findAllSolutions(null, [], explored, maxStranded);
+        const solutions = this.getSolutionsWithCaching();
+        
+        // For admin display, we still need the detailed analysis
+        if (this.gameState.cachedSolutions === solutions) {
+            // We used cached solutions, so run analysis for detailed stats
+            this.findAllSolutions(null, [], explored, maxStranded);
+        }
+        
         const solutionCount = solutions.length;
         const exploredCount = explored.count;
         const percentage = explored.finalOutcomes > 0 ? ((solutionCount / explored.finalOutcomes) * 100).toFixed(3) : '0.000';
@@ -2195,6 +2251,17 @@ class Game {
             displayText += `<br><br><strong>Max stranded=${maxStranded.score} (${diceList}):</strong> ${maxStranded.sequence.join(', ')}`;
         }
         
+        // Show stranded score distribution
+        if (explored.strandedCounts && Object.keys(explored.strandedCounts).length > 0) {
+            displayText += `<br><br><strong>Stranded score distribution:</strong><br>`;
+            // Sort by score for better readability
+            const sortedScores = Object.keys(explored.strandedCounts).map(Number).sort((a, b) => a - b);
+            sortedScores.forEach(score => {
+                const count = explored.strandedCounts[score];
+                const label = score === 0 ? 'Perfect' : `${score} stranded`;
+                displayText += `${label}: ${count}<br>`;
+            });
+        }
         
         displayText += `</div>`;
         this.solutionDisplay.innerHTML = displayText;
