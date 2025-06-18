@@ -418,6 +418,8 @@
             background: #ffeb3b;
             color: black;
             box-shadow: 0 0 10px rgba(255, 235, 59, 0.6);
+            z-index: 1;
+            position: relative;
         }
         .dice.target-preview {
             background: #a5d6a7;
@@ -481,6 +483,153 @@
         .cell.current-position:hover {
             background: #ff9800 !important;
         }
+        
+        /* Path arrow styles */
+        .path-arrow {
+            position: absolute;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                0 -1px 0 #000,
+                1px 0 0 #000,
+                0 1px 0 #000,
+                -1px 0 0 #000,
+                0 0 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        /* Path triangle styles */
+        .path-triangle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 15;
+            width: 0;
+            height: 0;
+        }
+        
+        .triangle-up {
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid white;
+            filter: drop-shadow(0 0 2px black);
+        }
+        
+        .triangle-down {
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid white;
+            filter: drop-shadow(0 0 2px black);
+        }
+        
+        .triangle-left {
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-right: 8px solid white;
+            filter: drop-shadow(0 0 2px black);
+        }
+        
+        .triangle-right {
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid white;
+            filter: drop-shadow(0 0 2px black);
+        }
+        
+        /* Path trail styles */
+        .path-trail {
+            position: relative;
+        }
+        
+        .path-trail::before {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        /* Straight line trails */
+        .trail-vertical::before {
+            width: 1px;
+            height: 100%;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+        }
+        
+        .trail-horizontal::before {
+            width: 100%;
+            height: 1px;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* Curved trails - using border-radius for smooth curves */
+        /* Path goes through center, avoiding the enclosed corner */
+        
+        .trail-top-left::before {
+            width: 50%;
+            height: 50%;
+            left: 0;
+            top: 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom-right-radius: 8px;
+            background: transparent;
+        }
+        
+        .trail-top-right::before {
+            width: 50%;
+            height: 50%;
+            right: 0;
+            top: 0;
+            border-left: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom-left-radius: 8px;
+            background: transparent;
+        }
+        
+        .trail-bottom-left::before {
+            width: 50%;
+            height: 50%;
+            left: 0;
+            bottom: 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.6);
+            border-top-right-radius: 8px;
+            background: transparent;
+        }
+        
+        .trail-bottom-right::before {
+            width: 50%;
+            height: 50%;
+            right: 0;
+            bottom: 0;
+            border-left: 1px solid rgba(255, 255, 255, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.6);
+            border-top-left-radius: 8px;
+            background: transparent;
+        }
+        
+        @keyframes pulse-path {
+            0%, 100% { 
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.1);
+            }
+        }
+        
         .button-container {
             display: flex;
             gap: 12px;
@@ -711,8 +860,11 @@
             <div class="help-section">
                 <h3>Moves</h3>
                 <p>Select a die and move it the number of steps on its face. It can only move through adjacent empty squares (no diagonals!), and must land on another die at the end.</p>
-                <p><strong>Same values:</strong> Both dice disappear</p>
-                <p><strong>Different values:</strong> Replace with the difference</p>
+                <p>If they're different, they'll be replaced by their difference. If the same, both disappear.</p>
+            </div>
+            <div class="help-section">
+                <h3>Controls</h3>
+                <p>Click and drag along a path, or click to select a die then click adjacent squares. You can also use arrow keys on your keyboard.</p>
             </div>
             <div id="gettingStartedSection" class="help-section">
                 <h3>Getting Started</h3>
@@ -720,6 +872,6 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.57"></script>
+    <script src="game.js?v=1.19.110"></script>
 </body>
 </html>

@@ -19,7 +19,7 @@ const DAILY_PUZZLES = [
 ];
 
 // Demo puzzle for getting started (easy tutorial)
-const DEMO_PUZZLE = 'NiwxMSwxM3wxLDMsMg=='; // 1 above 3, 2 to right of 3
+const DEMO_PUZZLE = 'Niw4LDE3fDEsMiwz'; // 1 in B2, 2 in D2, 3 in C4
 
 "use strict";
 
@@ -74,6 +74,8 @@ class Game {
         
         this.gameContainer = document.getElementById('gameContent');
         this.solutionDisplay = null; // Cache for solution display element
+        
+        
         this.init();
     }
     checkAdminMode() {
@@ -309,6 +311,7 @@ class Game {
         this.gameState.trailCells = [];
         this.gameState.showMobileTileHints = false;
         this.clearTargetPreview();
+        this.clearPathArrows();
     }
     
     clearSelectedDie() {
@@ -334,6 +337,7 @@ class Game {
         targetElements.forEach(element => {
             element.classList.remove('target-preview');
         });
+        
     }
     
     generatePipsHTML() {
@@ -359,6 +363,153 @@ class Game {
                 targetElement.classList.add('target-preview');
             }
         }
+    }
+    
+    // Show path arrows from current position to target
+    showPathArrows(path) {
+        // Clear any existing arrows first
+        this.clearPathArrows();
+        
+        const gridContainer = document.getElementById('grid');
+        if (!gridContainer || !path || path.length < 2) return;
+        
+        // Calculate cell size more carefully
+        // Grid has 10px padding, 2px gap between cells
+        const gridPadding = 10;
+        const gap = 2;
+        const availableSpace = gridContainer.clientWidth - (2 * gridPadding);
+        const cellSize = (availableSpace - (4 * gap)) / 5; // 4 gaps between 5 cells
+        
+        // Show arrows for each step in the path (except the last one, which is the target)
+        for (let i = 0; i < path.length - 1; i++) {
+            const fromPos = path[i];
+            const toPos = path[i + 1];
+            
+            // Convert positions to row/col
+            const [fromRow, fromCol] = this.positionToRowCol(fromPos);
+            const [toRow, toCol] = this.positionToRowCol(toPos);
+            
+            // Calculate direction
+            const deltaRow = toRow - fromRow;
+            const deltaCol = toCol - fromCol;
+            
+            // Add path trail to intermediate cells (not start or end)
+            if (i >= 0 && i < path.length - 2) {
+                const nextPos = path[i + 2];
+                const [nextRow, nextCol] = this.positionToRowCol(nextPos);
+                const nextDeltaRow = nextRow - toRow;
+                const nextDeltaCol = nextCol - toCol;
+                
+                // Add trail class to the intermediate cell
+                const cell = document.querySelector(`[data-position="${toPos}"]`);
+                if (cell && !this.dice.find(d => d.position === toPos)) {
+                    // Determine the trail direction based on incoming and outgoing directions
+                    let trailClass = 'path-trail';
+                    
+                    // Determine which corner is enclosed by the L-shaped path
+                    // Based on the sequence of movements through the cell
+                    
+                    if (deltaRow === -1 && nextDeltaCol === -1) { // up+left: bottom left
+                        trailClass += ' trail-bottom-left';
+                    } else if (deltaRow === -1 && nextDeltaCol === 1) { // up+right: bottom right
+                        trailClass += ' trail-bottom-right';
+                    } else if (deltaCol === -1 && nextDeltaRow === 1) { // left+down: bottom right
+                        trailClass += ' trail-bottom-right';
+                    } else if (deltaCol === -1 && nextDeltaRow === -1) { // left+up: top right
+                        trailClass += ' trail-top-right';
+                    } else if (deltaRow === 1 && nextDeltaCol === 1) { // down+right: top right
+                        trailClass += ' trail-top-right';
+                    } else if (deltaRow === 1 && nextDeltaCol === -1) { // down+left: top-left
+                        trailClass += ' trail-top-left';
+                    } else if (deltaCol === 1 && nextDeltaRow === -1) { // right+up: top left
+                        trailClass += ' trail-top-left';
+                    } else if (deltaCol === 1 && nextDeltaRow === 1) { // right+down: bottom left
+                        trailClass += ' trail-bottom-left';
+                    } else {
+                        // Straight line (no curve needed)
+                        if (deltaRow !== 0) {
+                            trailClass += ' trail-vertical';
+                        } else {
+                            trailClass += ' trail-horizontal';
+                        }
+                    }
+                    
+                    cell.classList.add(...trailClass.split(' '));
+                }
+            }
+            
+            // Determine arrow symbol
+            let arrowSymbol = '';
+            if (deltaRow === -1 && deltaCol === 0) { // Up
+                arrowSymbol = '↑';
+            } else if (deltaRow === 1 && deltaCol === 0) { // Down
+                arrowSymbol = '↓';
+            } else if (deltaRow === 0 && deltaCol === -1) { // Left
+                arrowSymbol = '←';
+            } else if (deltaRow === 0 && deltaCol === 1) { // Right
+                arrowSymbol = '→';
+            }
+            
+            if (arrowSymbol) {
+                // Create triangle element
+                const triangle = document.createElement('div');
+                triangle.className = 'path-triangle';
+                
+                // Calculate cell positions including gaps
+                const fromCellX = gridPadding + fromCol * (cellSize + gap);
+                const fromCellY = gridPadding + fromRow * (cellSize + gap);
+                const toCellX = gridPadding + toCol * (cellSize + gap);
+                const toCellY = gridPadding + toRow * (cellSize + gap);
+                
+                // Calculate the exact position on the border between squares
+                let posX, posY;
+                
+                if (deltaRow === -1 && deltaCol === 0) { // Up - on horizontal border above "from" cell
+                    posX = fromCellX + cellSize / 2; // Center horizontally in from cell
+                    posY = fromCellY - gap / 2 + 1; // On the top border, shifted back (down) 1px
+                } else if (deltaRow === 1 && deltaCol === 0) { // Down - on horizontal border below "from" cell
+                    posX = fromCellX + cellSize / 2; // Center horizontally in from cell  
+                    posY = fromCellY + cellSize + gap / 2 + 3; // On the bottom border, shifted forward 3px
+                } else if (deltaRow === 0 && deltaCol === -1) { // Left - on vertical border left of "from" cell
+                    posX = fromCellX - gap / 2 + 1; // On the left border, shifted back (right) 1px
+                    posY = fromCellY + cellSize / 2; // Center vertically in from cell
+                } else if (deltaRow === 0 && deltaCol === 1) { // Right - on vertical border right of "from" cell
+                    posX = fromCellX + cellSize + gap / 2 + 3; // On the right border, shifted forward 3px
+                    posY = fromCellY + cellSize / 2; // Center vertically in from cell
+                }
+                
+                // Set direction class for CSS triangle styling
+                if (deltaRow === -1 && deltaCol === 0) { // Up
+                    triangle.classList.add('triangle-up');
+                } else if (deltaRow === 1 && deltaCol === 0) { // Down
+                    triangle.classList.add('triangle-down');
+                } else if (deltaRow === 0 && deltaCol === -1) { // Left
+                    triangle.classList.add('triangle-left');
+                } else if (deltaRow === 0 && deltaCol === 1) { // Right
+                    triangle.classList.add('triangle-right');
+                }
+                
+                // Center the triangle (assuming 12px triangle size)
+                triangle.style.left = (posX - 6) + 'px';
+                triangle.style.top = (posY - 6) + 'px';
+                
+                gridContainer.appendChild(triangle);
+            }
+        }
+    }
+    
+    // Clear all path arrows
+    clearPathArrows() {
+        const arrows = document.querySelectorAll('.path-arrow');
+        const triangles = document.querySelectorAll('.path-triangle');
+        const trails = document.querySelectorAll('.path-trail');
+        arrows.forEach(arrow => arrow.remove());
+        triangles.forEach(triangle => triangle.remove());
+        trails.forEach(trail => {
+            // Remove all trail classes
+            trail.classList.remove('path-trail', 'trail-top-left', 'trail-top-right', 
+                'trail-bottom-left', 'trail-bottom-right', 'trail-vertical', 'trail-horizontal');
+        });
     }
     
     hasMovedFromStart() {
@@ -565,10 +716,45 @@ class Game {
             }
         }
         
-        // Update only the grid content
+        // Save existing path arrows/triangles/trails before clearing grid
         const gridContainer = document.getElementById('grid');
+        const existingArrows = gridContainer ? Array.from(gridContainer.querySelectorAll('.path-arrow, .path-triangle')) : [];
+        const existingTrails = gridContainer ? Array.from(gridContainer.querySelectorAll('.path-trail')) : [];
+        const arrowData = existingArrows.map(arrow => ({
+            className: arrow.className,
+            textContent: arrow.textContent,
+            left: arrow.style.left,
+            top: arrow.style.top
+        }));
+        const trailData = existingTrails.map(trail => ({
+            position: trail.dataset.position,
+            className: trail.className
+        }));
+        
+        // Update only the grid content
         if (gridContainer) {
             gridContainer.innerHTML = gridHTML;
+            
+            // Restore path arrows after innerHTML replacement
+            arrowData.forEach(arrow => {
+                const arrowElement = document.createElement('div');
+                arrowElement.className = arrow.className;
+                arrowElement.textContent = arrow.textContent;
+                arrowElement.style.position = 'absolute';
+                arrowElement.style.left = arrow.left;
+                arrowElement.style.top = arrow.top;
+                gridContainer.appendChild(arrowElement);
+            });
+            
+            // Restore trail classes after innerHTML replacement
+            trailData.forEach(trail => {
+                const cell = gridContainer.querySelector(`[data-position="${trail.position}"]`);
+                if (cell) {
+                    // Add trail classes without replacing existing classes
+                    const trailClasses = trail.className.split(' ').filter(cls => cls.startsWith('trail-') || cls === 'path-trail');
+                    cell.classList.add(...trailClasses);
+                }
+            });
         }
         
         this.attachSquareListeners();
@@ -643,6 +829,7 @@ class Game {
         // Reset game state
         this.clearSelectedDie();
         this.clearTargetPreview(); // Clear hint when resetting
+        this.clearPathArrows(); // Clear path arrows when resetting
         this.clearHintMessage(); // Clear any hint message
         // Clear undo history and emoji sequence
         this.gameState.history = [];
@@ -928,11 +1115,13 @@ class Game {
                         this.gameState.trailCells = [];
                         this.gameState.showMobileTileHints = false;
                         this.clearTargetPreview(); // Clear hint when pressing Escape
+                        this.clearPathArrows(); // Clear path arrows when pressing Escape
                         this.render();
                     } else {
                         // Die hasn't moved - deselect entirely
                         this.clearSelectedDie();
                         this.clearTargetPreview(); // Clear hint when pressing Escape
+                        this.clearPathArrows(); // Clear path arrows when pressing Escape
                         this.render();
                     }
                     return;
@@ -1171,7 +1360,15 @@ class Game {
                     // Ignore clicks on other dice when in motion
                     return;
                 }
-                this.selectDice(diceAtPosition.id);
+                
+                // Early return if die is already selected and hasn't moved yet (allows drag without clearing arrows)
+                if (this.gameState.selectedDie && 
+                    diceAtPosition.id === this.gameState.selectedDie.id && 
+                    this.gameState.trailCells.length === 0) {
+                    // Continue with drag setup without re-selecting
+                } else {
+                    this.selectDice(diceAtPosition.id);
+                }
                 // Clear lastInputMethod since we're now using pointer input
                 this.gameState.lastInputMethod = null;
                 // Continue with drag setup in case user wants to drag
@@ -1320,6 +1517,7 @@ class Game {
             // Deselect current dice and clear target preview (selecting different die)
             this.clearSelectedDie();
             this.clearTargetPreview();
+            this.clearPathArrows(); // Clear path arrows when selecting different die
         }
         const dice = this.dice.find(d => d.id === diceId);
         if (dice) {
@@ -1482,6 +1680,7 @@ class Game {
         // Clear any active movement state
         this.clearSelectedDie();
         this.clearTargetPreview(); // Clear hint when undoing
+        this.clearPathArrows(); // Clear path arrows when undoing
         this.clearHintMessage(); // Clear any hint message
         
         // Re-render the game
@@ -1504,10 +1703,9 @@ class Game {
             return; // No solutions available
         }
         
-        // Pick a random solution instead of always the first one
-        const randomIndex = Math.floor(Math.random() * solutions.length);
-        const randomSolution = solutions[randomIndex];
-        const firstMove = randomSolution[0];
+        // Pick the first solution
+        const firstSolution = solutions[0];
+        const firstMove = firstSolution[0];
         
         // Parse the first move to extract the starting position
         // Format is like: "A1(3) -> B2(4)"
@@ -1533,19 +1731,25 @@ class Game {
             // Parse the target position from the first move
             const targetMatch = firstMove.match(/-> ([A-E][1-5])\(\d+\)/);
             let targetDie = null;
+            let targetPosition = null;
             if (targetMatch) {
                 const targetPos = targetMatch[1];
                 const targetCol = targetPos.charCodeAt(0) - 'A'.charCodeAt(0);
                 const targetRow = parseInt(targetPos[1]) - 1;
-                const targetPosition = targetRow * 5 + targetCol;
+                targetPosition = targetRow * 5 + targetCol;
                 targetDie = this.dice.find(die => die.position === targetPosition);
             }
             
             // Use setTimeout to avoid race conditions with other click handlers
             setTimeout(() => {
                 this.selectDice(hintDie.id);
-                if (targetDie) {
-                    this.setTargetPreview(targetDie.id);
+                
+                // Show path arrows instead of target preview
+                if (targetDie && targetPosition !== null) {
+                    const path = this.findValidPath(position, targetPosition, this, hintDie.value);
+                    if (path) {
+                        this.showPathArrows(path);
+                    }
                 }
             }, 10); // Small delay to ensure other event handlers complete first
         }
@@ -1728,6 +1932,7 @@ class Game {
         
         // Clear target preview when move completes with collision
         this.clearTargetPreview();
+        this.clearPathArrows(); // Clear path arrows when collision occurs
         
         // Add the moving die's value to step count (this represents the move that just completed)
         this.gameState.totalSteps += movingDice.value;
@@ -1980,6 +2185,70 @@ class Game {
         }
         
         return false; // No valid path found
+    }
+    
+    // Find the actual path from one position to another (returns array of positions)
+    findValidPath(fromPosition, toPosition, gameState, stepsRemaining, visitedPositions = new Set(), currentPath = []) {
+        // Base case: if we've reached the target
+        if (fromPosition === toPosition) {
+            if (stepsRemaining === 0) {
+                return [...currentPath, fromPosition]; // Return the complete path
+            }
+            return null; // Must use exact number of steps
+        }
+        
+        // Base case: if we're out of steps
+        if (stepsRemaining <= 0) {
+            return null;
+        }
+        
+        // Base case: if we've been to this position before (avoid loops)
+        if (visitedPositions.has(fromPosition)) {
+            return null;
+        }
+        
+        // Add current position to visited and path
+        const newVisited = new Set(visitedPositions);
+        newVisited.add(fromPosition);
+        const newPath = [...currentPath, fromPosition];
+        
+        // Get all adjacent positions
+        const [row, col] = this.positionToRowCol(fromPosition);
+        const directions = [
+            [-1, 0], // up
+            [1, 0],  // down
+            [0, -1], // left
+            [0, 1]   // right
+        ];
+        
+        for (const [deltaRow, deltaCol] of directions) {
+            const newRow = row + deltaRow;
+            const newCol = col + deltaCol;
+            
+            // Check bounds
+            if (newRow < 0 || newRow >= 5 || newCol < 0 || newCol >= 5) {
+                continue;
+            }
+            
+            const newPosition = this.rowColToPosition(newRow, newCol);
+            
+            // Check if there's a die at this position (blocking our path)
+            const diceAtPosition = gameState.dice.find(die => die.position === newPosition);
+            
+            // We can only move to a position with a die if it's our final destination
+            // Otherwise, dice block our path
+            if (diceAtPosition && newPosition !== toPosition) {
+                continue; // This position is blocked
+            }
+            
+            // Recursively check if we can reach the target from this new position
+            const pathResult = this.findValidPath(newPosition, toPosition, gameState, stepsRemaining - 1, newVisited, newPath);
+            if (pathResult) {
+                return pathResult; // Return the first valid path found
+            }
+        }
+        
+        return null; // No valid path found
     }
     
     // Enhanced version of canDiceReachDice that uses actual pathfinding
