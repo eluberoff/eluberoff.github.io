@@ -1,25 +1,47 @@
 // Hardcoded daily puzzles (curated for solvability)
 const DAILY_PUZZLES = [
-    'MTgsMTIsOCw3LDExLDE2fDMsNSwyLDYsNCw0',           // Day 1 (June 16, 2025)
-    'MTYsMTIsMTMsNiw4LDExfDYsNSwyLDQsMiw1',           // Day 2
-    'MTIsMTMsNywxNiwxNyw2fDIsMiw1LDIsMyw0',           // Day 3
-    'OCwxOCwxMiwxNyw2LDEzfDYsMSwzLDYsMSwx',           // Day 4
-    'MTEsOCwxMyw2LDEyLDE2fDMsMSw1LDUsMywy',           // Day 5 (fixed)
-    'NiwxMyw3LDExLDE2LDE4fDIsNiw0LDEsNSw2',           // Day 6
-    'MTEsMTcsMTgsNiw4LDEyfDEsMywyLDIsNSw1',           // Day 7
-    'OCwxNiwxMSwxNyw3LDEzfDYsMSw1LDQsNCwy',           // Day 8
-    'MTEsMTcsOCwxNiwxMiw2fDMsNiw2LDIsMSw2',           // Day 9
-    'MTEsMTgsNyw2LDEzLDEyfDUsMywyLDEsMSwy',           // Day 10
-    'MTYsNiw3LDgsMTcsMTN8MiwzLDMsMSwxLDQ=',           // Day 11 (URL decoded)
-    'MTEsMTIsNiw4LDEzLDd8MSwzLDMsMSw0LDY=',           // Day 12 (URL decoded)
-    'MTYsNiwxMiwxNywxMSwxOHwxLDMsMywxLDUsMQ==',       // Day 13 (URL decoded)
-    'MTMsMTcsMTgsMTEsNywxNnw2LDUsMSwxLDMsNA==',       // Day 14 (URL decoded)
-    'MTIsMTEsMTYsMTgsOCwxN3wxLDIsNSwxLDMsNA==',       // Day 15 (URL decoded)
-    'MTYsNiwxMywxMiw4LDd8NCwxLDEsMSw0LDM='            // Day 16 (URL decoded)
+    'MTYsMTgsOCw3fDMsNiw1LDQ%3D',                       // Day 1 (June 16, 2025)
+    'MTYsMTIsMTMsNiw4LDExfDYsNSwyLDQsMiw1',             // Day 2 (June 17, 2025)
+    'MTIsMTMsNywxNiwxNyw2fDIsMiw1LDIsMyw0',             // Day 3 (June 18, 2025)
+    'OCwxOCwxMiwxNyw2LDEzfDYsMSwzLDYsMSwx',             // Day 4 (June 19, 2025)
+    'MTIsNyw2LDgsMTcsMTN8NiwzLDQsNSwyLDY%3D',           // Day 5 (June 20, 2025)
+    'MTEsMTcsMTgsNiw4LDEyfDEsMywyLDIsNSw1',             // Day 6 (June 21, 2025)
+    'OCwxMiwxNiwxNyw2LDEzfDYsMSw1LDUsMSwy',             // Day 7 (June 22, 2025)
+    'MTgsMTYsNywxMXwyLDMsNCwz',                         // Day 8 (June 23, 2025)
+    'Nyw2LDEzLDgsMTJ8NCw0LDYsMywz',                     // Day 9 (June 24, 2025)
+    'OCwxOCw3LDE3LDEzLDEyfDMsMyw0LDQsMiw0',             // Day 10 (June 25, 2025)
+    'NiwxMyw3LDExLDE2LDE4fDIsNiw0LDEsNSw2',             // Day 11 (June 26, 2025)
+    'OCwxNiwxMSwxNyw3LDEzfDYsMSw1LDQsNCwy',             // Day 12 (June 27, 2025)
+    'MTgsNiwxNiwxMyw3LDh8NSwyLDEsMSw2LDU%3D',           // Day 13 (June 28, 2025)
+    'MTgsMTcsMTYsMTEsMTMsMTJ8Niw1LDIsNiwyLDM%3D',       // Day 14 (June 29, 2025)
+    'MTgsMTYsNiwxMXw2LDIsMyw1',                         // Day 15 (June 30, 2025)
+    'Niw4LDEzLDE4LDE2fDUsNCwzLDYsMg%3D%3D',             // Day 16 (July 1, 2025)
+    'MTYsMTIsMTgsMTcsOCwxM3wzLDMsNiwyLDQsNA%3D%3D',     // Day 17 (July 2, 2025)
+    'MTEsMTcsOCwxNiwxMiw2fDMsNiw2LDIsMSw2',             // Day 18 (July 3, 2025)
+    'MTYsNiwxMiwxNywxMSwxOHwxLDMsMywxLDUsMQ==',         // Day 19 (July 4, 2025)
+    'MTEsMTgsNyw2LDEzLDEyfDMsNCwxLDQsNiw2',             // Day 20 (July 5, 2025)
+    'MTEsMTgsMTMsMTcsOCwxMnwxLDMsNiw2LDQsNA%3D%3D',     // Day 21 (July 6, 2025)
+    'OCw3LDE2LDZ8NCw1LDMsNg%3D%3D',                     // Day 22 (July 7, 2025)
+    'OCwxMiwxNywxOCw3fDMsNSw2LDIsNg%3D%3D',             // Day 23 (July 8, 2025)
+    'MTEsMTgsNyw2LDEzLDEyfDUsMywyLDEsMSwy',             // Day 24 (July 9, 2025)
+    'MTYsNiw3LDgsMTcsMTN8MiwzLDMsMSwxLDQ=',             // Day 25 (July 10, 2025)
+    'NiwxMywxMiwxOCwxNiw4fDEsMywyLDQsNSwx',             // Day 26 (July 11, 2025)
+    'NiwxNiwxMSw4LDEyLDE4fDEsNSw2LDYsNSwx',             // Day 27 (July 12, 2025)
+    'Niw4LDEzLDE3LDcsMTJ8MywxLDYsNiw0LDQ%3D'            // Day 28 (July 13, 2025)
 ];
 
 // Demo puzzle for getting started (easy tutorial)
 const DEMO_PUZZLE = 'Niw4LDE3fDEsMiwz'; // 1 in B2, 2 in D2, 3 in C4
+
+// Button text constants
+const BUTTON_LABELS = {
+    UNDO: 'Undo',
+    RESTART: 'New Run', 
+    HINT: 'Hint',
+    NEW_GAME: 'New',
+    SHARE: 'Share',
+    SAVE: 'Save'
+};
 
 "use strict";
 
@@ -38,13 +60,22 @@ class Game {
             delayGameOverCheck: false, // Delay game over overlay until animations complete
             trailCells: [], // Array of positions that have been visited during current movement
             history: [], // Array of previous game states for undo functionality
-            emojiSequence: [], // Array of emojis representing the moves made during the game
+            // New scoring system
+            forwardMoves: 0, // Count of forward moves only (ignoring backtracking)
+            undoCount: 0, // Number of undos used
+            restartCount: 0, // Number of restarts used  
+            hintCount: 0, // Number of hints used
+            // Legacy tracking (kept for compatibility)
             totalSteps: 0, // Total number of dice movement steps
             usedAssists: false, // Track if undo, reset, or backtracking was used
             targetPreviewDiceId: null, // Store which die has the target preview
             hintMessageTimeout: null, // Store timeout for hint message
             showMobileTileHints: false, // Only show mobile tile hints after tap, not during drag
-            cachedSolutions: null // Store all solutions for hint randomization
+            cachedSolutions: null, // Store all solutions for hint randomization
+            // Run tracking
+            runHistory: [], // Array of completed runs with their stats
+            currentRunNumber: 1, // Current run number
+            minStepsForPuzzle: null // Minimum steps for perfect solution
         };
         
         // Emoji mapping for move tracking
@@ -92,6 +123,22 @@ class Game {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.has('demo');
     }
+
+    getDiceCount() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const diceCount = urlParams.get("diceCount");
+        const parsed = diceCount ? parseInt(diceCount, 10) : 6;
+        // Validate: must be between 0 and 9 (max inner grid positions)
+        return isNaN(parsed) ? 6 : Math.max(0, Math.min(9, parsed));
+    }
+    
+    getMaxDie() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const maxDie = urlParams.get("maxDie");
+        const parsed = maxDie ? parseInt(maxDie, 10) : 6;
+        // Validate: must be between 1 and 9 (reasonable range)
+        return isNaN(parsed) ? 6 : Math.max(1, Math.min(9, parsed));
+    }
     
     detectMobileDevice() {
         const userAgent = navigator.userAgent.toLowerCase();
@@ -100,36 +147,21 @@ class Game {
         return isIOS || isAndroid;
     }
     
-    getTodayEasternDate() {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const parts = formatter.formatToParts(now);
-        const year = parseInt(parts.find(p => p.type === 'year').value);
-        const month = parseInt(parts.find(p => p.type === 'month').value) - 1; // months are 0-based
-        const day = parseInt(parts.find(p => p.type === 'day').value);
-        return new Date(year, month, day);
-    }
-    
     getDailyPuzzleNumber() {
-        // Calculate days since game launch (June 16, 2025 = puzzle #1)
-        const launchDate = new Date('2025-06-16T00:00:00-05:00'); // EDT
-        const todayEastern = this.getTodayEasternDate();
+        // Simple epoch-based calculation - no timezone complications
+        const LAUNCH_EPOCH = 1750046400000; // June 14, 2025 midnight ET in milliseconds
+        const MS_PER_DAY = 24 * 60 * 60 * 1000;
         
-        // Reset to start of day for accurate day counting
-        const todayStart = new Date(todayEastern.getFullYear(), todayEastern.getMonth(), todayEastern.getDate());
-        const launchStart = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate());
+        const now = Date.now();
+        const daysSinceLaunch = Math.floor((now - LAUNCH_EPOCH) / MS_PER_DAY);
+        const puzzleNumber = Math.max(1, daysSinceLaunch + 1); // Ensure minimum puzzle #1
         
-        const daysDiff = Math.floor((todayStart - launchStart) / (1000 * 60 * 60 * 24));
-        const puzzleNumber = Math.max(1, daysDiff + 1); // Ensure minimum puzzle #1
-        
-        // Cycle through available puzzles (16 puzzles available)
+        // Cycle through available puzzles (28 puzzles available)
         return ((puzzleNumber - 1) % DAILY_PUZZLES.length) + 1;
     }
+    
+
+
     
     getDailyPuzzleData() {
         const puzzleNumber = this.getDailyPuzzleNumber();
@@ -139,18 +171,64 @@ class Game {
     }
     
     getFormattedDate() {
-        const easternDate = this.getTodayEasternDate();
-        return easternDate.toLocaleDateString('en-US', {
+        // Use simple date formatting based on user's local timezone
+        const today = new Date();
+        return today.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long', 
-            day: 'numeric',
-            timeZone: 'America/New_York'
+            day: 'numeric'
         });
     }
     
     getCompletionMessage() {
-        const suffix = this.gameState.usedAssists ? '' : ' (first try!)';
-        return `Cleared in ${this.gameState.totalSteps} moves${suffix}`;
+        const moves = this.gameState.forwardMoves;
+        const hints = this.gameState.hintCount;
+        const runNumber = this.gameState.currentRunNumber;
+        const ordinal = this.getOrdinal(runNumber);
+        
+        let message = `${ordinal} run: cleared in ${moves} moves`;
+        
+        // Check if this is a perfect run
+        const isPerfect = this.gameState.minStepsForPuzzle && 
+            moves === this.gameState.minStepsForPuzzle && 
+            hints === 0;
+        
+        if (isPerfect) {
+            message += ' (perfect)';
+        } else if (hints === 1) {
+            message += ' (1 hint)';
+        } else if (hints > 1) {
+            message += ` (${hints} hints)`;
+        }
+        
+        return message;
+    }
+    
+    getScoringGridHTML() {
+        return `
+            <div class="scoring-grid">
+                <div class="scoring-row">
+                    <span class="scoring-label">Moves:</span>
+                    <span class="scoring-value">${this.gameState.forwardMoves}</span>
+                </div>
+                <div class="scoring-row">
+                    <span class="scoring-label">Hints:</span>
+                    <span class="scoring-value">${this.gameState.hintCount}</span>
+                </div>
+                <div class="scoring-row">
+                    <span class="scoring-label">Undos:</span>
+                    <span class="scoring-value">${this.gameState.undoCount}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    getScoringGridText() {
+        return `Moves: ${this.gameState.forwardMoves} | Hints: ${this.gameState.hintCount} | Undos: ${this.gameState.undoCount}`;
+    }
+    
+    getScoringGridText() {
+        return `Moves: ${this.gameState.forwardMoves} | Hints: ${this.gameState.hintCount} | Undos: ${this.gameState.undoCount}`;
     }
     
     createSeededRandom() {
@@ -174,6 +252,41 @@ class Game {
             titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
             subtitleElement.textContent = formattedDate;
         }
+    }
+    
+    getRunHistoryHTML() {
+        if (this.gameState.runHistory.length === 0) {
+            return '';
+        }
+        
+        const runTexts = this.gameState.runHistory.map(run => {
+            const ordinal = this.getOrdinal(run.runNumber);
+            let runText = `${ordinal} run: cleared in ${run.moves} moves`;
+            
+            if (run.completed) {
+                if (run.perfect) {
+                    runText += ' (perfect!)';
+                } else if (run.hints === 0) {
+                    runText += '';
+                } else if (run.hints === 1) {
+                    runText += ' (1 hint)';
+                } else {
+                    runText += ` (${run.hints} hints)`;
+                }
+            } else {
+                runText = `${ordinal} run: ${run.moves} moves (incomplete)`;
+            }
+            
+            return runText;
+        });
+        
+        return `<div style="font-size: 14px; color: #ccc;">${runTexts.join('<br>')}</div>`;
+    }
+    
+    getOrdinal(n) {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
     }
     
     init() {
@@ -206,11 +319,20 @@ class Game {
             this.initialDice = this.dice.map(dice => ({ ...dice }));
             // Clear undo history and emoji sequence for daily puzzle
             this.gameState.history = [];
-            this.gameState.emojiSequence = [];
             this.gameState.totalSteps = 0;
             this.gameState.usedAssists = false;
+            // Reset scoring counters for new puzzle
+            this.gameState.forwardMoves = 0;
+            this.gameState.undoCount = 0;
+            this.gameState.restartCount = 0;
+            this.gameState.hintCount = 0;
+            // Reset run tracking
+            this.gameState.runHistory = [];
+            this.gameState.currentRunNumber = 1;
             // Clear solution cache for new puzzle
             this.invalidateSolutionCache();
+            // Calculate minimum steps for perfect detection
+            this.calculateMinimumSteps();
         } else {
             // Fallback to random generation if puzzle data is invalid
             this.placeDice();
@@ -230,11 +352,20 @@ class Game {
             this.initialDice = this.dice.map(dice => ({ ...dice }));
             // Clear undo history and emoji sequence for demo puzzle
             this.gameState.history = [];
-            this.gameState.emojiSequence = [];
             this.gameState.totalSteps = 0;
             this.gameState.usedAssists = false;
+            // Reset scoring counters for new puzzle
+            this.gameState.forwardMoves = 0;
+            this.gameState.undoCount = 0;
+            this.gameState.restartCount = 0;
+            this.gameState.hintCount = 0;
+            // Reset run tracking
+            this.gameState.runHistory = [];
+            this.gameState.currentRunNumber = 1;
             // Clear solution cache for new puzzle
             this.invalidateSolutionCache();
+            // Calculate minimum steps for perfect detection
+            this.calculateMinimumSteps();
         } else {
             // Fallback to random generation if demo puzzle data is invalid
             this.placeDice();
@@ -242,7 +373,8 @@ class Game {
     }
     
     getRandomDiceValue() {
-        return Math.floor(this.seedRandom() * 6) + 1;
+        const maxDie = this.getMaxDie();
+        return Math.floor(this.seedRandom() * maxDie) + 1;
     }
     getInnerPositions() {
         const positions = [];
@@ -256,8 +388,9 @@ class Game {
     placeDice() {
         const innerPositions = this.getInnerPositions();
         const selectedPositions = [];
-        // Select 6 random positions from the inner 3x3 area
-        while (selectedPositions.length < 6) {
+        const diceCount = this.getDiceCount();
+        // Select random positions from the inner 3x3 area
+        while (selectedPositions.length < diceCount) {
             const randomIndex = Math.floor(this.seedRandom() * innerPositions.length);
             const position = innerPositions[randomIndex];
             if (!selectedPositions.includes(position)) {
@@ -279,6 +412,15 @@ class Game {
         
         // Store initial configuration for reset
         this.initialDice = this.dice.map(dice => ({ ...dice }));
+        
+        // Reset all scoring counters for new puzzle
+        this.gameState.history = [];
+        this.gameState.totalSteps = 0;
+        this.gameState.usedAssists = false;
+        this.gameState.forwardMoves = 0;
+        this.gameState.undoCount = 0;
+        this.gameState.restartCount = 0;
+        this.gameState.hintCount = 0;
         
         // Clear solution cache for new puzzle
         this.invalidateSolutionCache();
@@ -534,21 +676,21 @@ class Game {
     renderInitial() {
         // Render the entire page structure once
         const newButtonHTML = this.isAdminMode 
-            ? '<button id="newGameButton" class="game-btn new-game-btn">New</button>'
+            ? `<button id="newGameButton" class="game-btn new-game-btn">${BUTTON_LABELS.NEW_GAME}</button>`
             : '';
             
         const shareButtonHTML = this.isAdminMode 
-            ? '<button id="shareButton" class="game-btn share-btn">Save</button>'
+            ? `<button id="shareButton" class="game-btn share-btn">${BUTTON_LABELS.SAVE}</button>`
             : '';
             
         const hintButtonHTML = this.isAdminMode 
             ? ''
-            : '<button id="hintButton" class="game-btn hint-btn">Hint</button>';
+            : `<button id="hintButton" class="game-btn hint-btn">${BUTTON_LABELS.HINT}</button>`;
             
         const buttonsHTML = `
             <div class="button-container">
-                <button id="undoButton" class="game-btn undo-btn">Undo</button>
-                <button id="resetButton" class="game-btn reset-btn">Restart</button>
+                <button id="resetButton" class="game-btn undo-btn">${BUTTON_LABELS.RESTART}</button>
+                <button id="undoButton" class="game-btn reset-btn">${BUTTON_LABELS.UNDO}</button>
                 ${hintButtonHTML}
                 ${newButtonHTML}
                 ${shareButtonHTML}
@@ -671,16 +813,28 @@ class Game {
             ).join('');
             
             if (finalScore === 0) {
-                // Perfect score celebration with emoji sequence!
-                const emojiSequenceHTML = this.gameState.emojiSequence.length > 0 
-                    ? `<div class="emoji-sequence">${this.gameState.emojiSequence.join('')}</div>`
-                    : '';
+                // Perfect score celebration!
+                
+                // Track completed run
+                const isPerfect = this.gameState.minStepsForPuzzle && 
+                    this.gameState.forwardMoves === this.gameState.minStepsForPuzzle && 
+                    this.gameState.hintCount === 0;
+                
+                this.gameState.runHistory.push({
+                    runNumber: this.gameState.currentRunNumber,
+                    moves: this.gameState.forwardMoves,
+                    hints: this.gameState.hintCount,
+                    completed: true,
+                    perfect: isPerfect
+                });
                     
+                const scoringGridHTML = this.getScoringGridHTML();
+                
                 gridHTML += `
                     <div id="gameOverOverlay" class="win-celebration">
                         <div class="win-title">Success!</div>
                         <div class="win-subtitle">${this.getCompletionMessage()}</div>
-                        ${emojiSequenceHTML}
+                        ${scoringGridHTML}
                         <div class="final-dice-container">${finalDiceHTML}</div>
                         <div style="margin-top: 20px; text-align: center;">
                             ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
@@ -817,8 +971,20 @@ class Game {
         }
     }
     resetToInitialState() {
+        // Track completed run if moves were made
+        if (this.gameState.forwardMoves > 0) {
+            this.gameState.runHistory.push({
+                runNumber: this.gameState.currentRunNumber,
+                moves: this.gameState.forwardMoves,
+                hints: this.gameState.hintCount,
+                completed: false // Didn't complete, just restarted
+            });
+            this.gameState.currentRunNumber++;
+        }
+        
         // Mark that reset was used (counts as assist)
         this.gameState.usedAssists = true;
+        this.gameState.restartCount++;
         
         // Reset dice to initial configuration (whatever was originally loaded)
         this.dice = this.initialDice.map(dice => ({ ...dice }));
@@ -831,10 +997,13 @@ class Game {
         this.clearTargetPreview(); // Clear hint when resetting
         this.clearPathArrows(); // Clear path arrows when resetting
         this.clearHintMessage(); // Clear any hint message
-        // Clear undo history and emoji sequence
+        // Clear undo history
         this.gameState.history = [];
-        this.gameState.emojiSequence = [];
         this.gameState.totalSteps = 0;
+        // Reset scoring for new run
+        this.gameState.forwardMoves = 0;
+        this.gameState.undoCount = 0;
+        this.gameState.hintCount = 0;
         this.updateButtons();
         this.render();
         this.updateSolutionDisplay(); // Update solutions after reset
@@ -912,10 +1081,9 @@ class Game {
         let shareText;
         
         if (finalScore === 0) {
-            // Perfect score
+            // Perfect score - just current run
             const resultText = this.getCompletionMessage();
-            const emojiSequence = this.gameState.emojiSequence.join('');
-            shareText = `${puzzleTitle}\n${resultText}\n${emojiSequence}`;
+            shareText = `${puzzleTitle}\n${resultText}`;
         } else {
             // Stranded score with fancy logic
             if (this.dice.length === 1) {
@@ -930,6 +1098,10 @@ class Game {
             }
         }
         
+        // Add current URL to the share message
+        const currentUrl = window.location.href;
+        shareText += `\n\n${currentUrl}`;
+        
         this.copyToClipboardSolution(shareText);
     }
     
@@ -941,8 +1113,18 @@ class Game {
                 this.showSolutionShareMessage('Solution copied to clipboard!');
                 return;
             }
+            
+            // Fallback for older browsers or non-secure contexts
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            this.showSolutionShareMessage('Solution copied to clipboard!');
         }
         catch (err) {
+            console.error('Copy failed:', err);
             this.showSolutionShareMessage('Could not copy to clipboard');
         }
     }
@@ -1652,8 +1834,8 @@ class Game {
                 value: die.value,
                 position: die.position
             })),
-            emojiSequence: [...this.gameState.emojiSequence],
             totalSteps: this.gameState.totalSteps
+            // Don't save scoring counters - they should never decrease via undo
         };
         this.gameState.history.push(stateCopy);
         this.updateButtons();
@@ -1666,13 +1848,14 @@ class Game {
         
         // Mark that undo was used (counts as assist)
         this.gameState.usedAssists = true;
+        this.gameState.undoCount++;
         
         // Restore the previous state
         const previousState = this.gameState.history.pop();
         this.dice = previousState.dice;
         // Don't restore initialDice - it should never change from original puzzle
-        this.gameState.emojiSequence = previousState.emojiSequence;
         this.gameState.totalSteps = previousState.totalSteps;
+        // Don't restore scoring counters - they should never decrease
         
         // Invalidate solution cache since dice state changed
         this.invalidateSolutionCache();
@@ -1694,6 +1877,7 @@ class Game {
     showHint() {
         // Mark that hint was used (counts as assist)
         this.gameState.usedAssists = true;
+        this.gameState.hintCount++;
         
         // Get all solutions using caching
         const solutions = this.getSolutionsWithCaching();
@@ -1703,8 +1887,27 @@ class Game {
             return; // No solutions available
         }
         
-        // Pick the first solution
-        const firstSolution = solutions[0];
+        // Calculate step counts for each solution and prefer suboptimal ones
+        const solutionsWithSteps = solutions.map(solution => {
+            const totalSteps = solution.reduce((total, moveDesc) => {
+                // Extract the first number in parentheses (moving die's value)
+                const match = moveDesc.match(/\((\d+)\)/);
+                const steps = match ? parseInt(match[1]) : 0;
+                return total + steps;
+            }, 0);
+            return { solution, totalSteps };
+        });
+        
+        // Find minimum step count
+        const minSteps = Math.min(...solutionsWithSteps.map(s => s.totalSteps));
+        
+        // Prefer first suboptimal solution, or first optimal if all are optimal
+        const suboptimalSolutions = solutionsWithSteps.filter(s => s.totalSteps > minSteps);
+        const chosenSolution = suboptimalSolutions.length > 0 
+            ? suboptimalSolutions[0].solution 
+            : solutionsWithSteps[0].solution;
+        
+        const firstSolution = chosenSolution;
         const firstMove = firstSolution[0];
         
         // Parse the first move to extract the starting position
@@ -1758,8 +1961,8 @@ class Game {
     updateUndoButton() {
         const undoButton = document.getElementById('undoButton');
         if (undoButton) {
-            // Disable undo button when no history available
-            undoButton.disabled = this.gameState.history.length === 0;
+            // Disable undo button when no history available or game is over
+            undoButton.disabled = this.gameState.history.length === 0 || this.isGameOver();
         }
     }
     
@@ -1888,6 +2091,9 @@ class Game {
             this.gameState.trailCells.push(currentPosition);
         }
         
+        // Track forward move
+        this.gameState.forwardMoves++;
+        
         // Move the transient tile
         this.gameState.transientTile.position = newPosition;
         this.gameState.movesRemaining--;
@@ -1939,11 +2145,9 @@ class Game {
         
         // Track emoji for this collision
         // Always add the die that moved
-        this.gameState.emojiSequence.push(this.EMOJI_MAP[movingDice.value]);
         
         if (movingDice.value === targetDice.value) {
             // Same values: both dice disappear → add explosion emoji
-            this.gameState.emojiSequence.push(this.EMOJI_MAP.explosion);
         }
         
         // First render to show the collision
@@ -2117,6 +2321,27 @@ class Game {
     
     invalidateSolutionCache() {
         this.gameState.cachedSolutions = null;
+    }
+    
+    calculateMinimumSteps() {
+        const solutions = this.getSolutionsWithCaching();
+        if (solutions.length === 0) {
+            this.gameState.minStepsForPuzzle = null;
+            return;
+        }
+        
+        // Calculate total steps for each solution
+        const stepsArray = solutions.map(solution => {
+            return solution.reduce((total, moveDesc) => {
+                // Extract the first number in parentheses (moving die's value)
+                const match = moveDesc.match(/\((\d+)\)/);
+                const steps = match ? parseInt(match[1]) : 0;
+                return total + steps;
+            }, 0);
+        });
+        
+        // Find minimum steps
+        this.gameState.minStepsForPuzzle = Math.min(...stepsArray);
     }
     
     // === SOLUTION FINDER METHODS ===
@@ -2310,7 +2535,15 @@ class Game {
         
         // Initialize explored counter and max stranded tracker if this is the root call
         if (explored === null) {
-            explored = { count: 0, finalOutcomes: 0, solutions: 0, strandedCounts: {} };
+            explored = { 
+                count: 0, 
+                finalOutcomes: 0, 
+                solutions: 0, 
+                strandedCounts: {}, 
+                moveCounts: {},
+                strandedExamples: {}, // Representative solutions for each stranded score
+                stepExamples: {} // Representative solutions for each step count
+            };
         }
         if (maxStranded === null) {
             maxStranded = { score: 0, sequence: [], diceValues: [] };
@@ -2330,6 +2563,23 @@ class Game {
                 explored.strandedCounts[0]++;
             } else {
                 explored.strandedCounts[0] = 1;
+                // Store first example of perfect solution
+                explored.strandedExamples[0] = moveSequence.slice();
+            }
+            
+            // Track total steps (sum of face values) for this solution
+            const totalSteps = moveSequence.reduce((total, moveDesc) => {
+                // Extract the first number in parentheses (moving die's value)
+                const match = moveDesc.match(/\((\d+)\)/);
+                const steps = match ? parseInt(match[1]) : 0;
+                return total + steps;
+            }, 0);
+            if (explored.moveCounts[totalSteps]) {
+                explored.moveCounts[totalSteps]++;
+            } else {
+                explored.moveCounts[totalSteps] = 1;
+                // Store first example of this step count
+                explored.stepExamples[totalSteps] = moveSequence.slice();
             }
             
             return [moveSequence.slice()]; // Return copy of current sequence
@@ -2367,6 +2617,8 @@ class Game {
                 explored.strandedCounts[currentScore]++;
             } else {
                 explored.strandedCounts[currentScore] = 1;
+                // Store first example of this stranded score
+                explored.strandedExamples[currentScore] = moveSequence.slice();
             }
             
             if (currentScore > maxStranded.score) {
@@ -2482,7 +2734,15 @@ class Game {
         }
         displayText += `</div>`;
         
-        const explored = { count: 0, finalOutcomes: 0, solutions: 0, strandedCounts: {} };
+        const explored = { 
+            count: 0, 
+            finalOutcomes: 0, 
+            solutions: 0, 
+            strandedCounts: {}, 
+            moveCounts: {},
+            strandedExamples: {}, 
+            stepExamples: {} 
+        };
         const maxStranded = { score: 0, sequence: [], diceValues: [] };
         const solutions = this.getSolutionsWithCaching();
         
@@ -2499,37 +2759,59 @@ class Game {
         const deadEndCount = explored.finalOutcomes - solutionCount;
         displayText += `<strong>Found ${solutionCount} solution${solutionCount !== 1 ? 's' : ''} & ${deadEndCount} dead end${deadEndCount !== 1 ? 's' : ''} (${percentage}%)</strong>`;
         
-        if (solutionCount > 0 && solutionCount <= 5) {
-            // Show actual solutions if there are 5 or fewer
-            displayText += `<br><br>`;
-            solutions.forEach((solution, index) => {
-                displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
-            });
-        } else if (solutionCount > 5) {
-            // Just show the first 5 for brevity
-            displayText += `<br><br>`;
-            solutions.slice(0, 5).forEach((solution, index) => {
-                displayText += `<strong>Solution ${index + 1}:</strong> ${solution.join(', ')}<br>`;
-            });
-            displayText += `<em>... and ${solutionCount - 5} more solutions</em>`;
-        }
+        // Removed individual solution lists and max stranded display
+        // Representative solutions will be shown inline with statistics below
         
-        // Show maximum stranded result
-        if (maxStranded.score > 0) {
-            const diceList = maxStranded.diceValues.join(',');
-            displayText += `<br><br><strong>Max stranded=${maxStranded.score} (${diceList}):</strong> ${maxStranded.sequence.join(', ')}`;
-        }
-        
-        // Show stranded score distribution
+        // Show stranded score distribution as table
         if (explored.strandedCounts && Object.keys(explored.strandedCounts).length > 0) {
             displayText += `<br><br><strong>Stranded score distribution:</strong><br>`;
+            displayText += `<table style="border-collapse: collapse; margin: 8px auto;">`;
+            displayText += `<tr style="background: rgba(255,255,255,0.1);"><th style="padding: 6px 12px; border: 1px solid #666; text-align: left;">Description</th><th style="padding: 6px 12px; border: 1px solid #666; text-align: right;">Count</th><th style="padding: 6px 12px; border: 1px solid #666; text-align: left;">Example</th></tr>`;
+            
             // Sort by score for better readability
             const sortedScores = Object.keys(explored.strandedCounts).map(Number).sort((a, b) => a - b);
             sortedScores.forEach(score => {
                 const count = explored.strandedCounts[score];
                 const label = score === 0 ? 'Perfect' : `${score} stranded`;
-                displayText += `${label}: ${count}<br>`;
+                let example = '';
+                
+                // Add representative solution
+                if (explored.strandedExamples[score]) {
+                    const exampleSolution = explored.strandedExamples[score];
+                    if (exampleSolution.length > 0) {
+                        example = exampleSolution.join(', ');
+                    }
+                }
+                
+                displayText += `<tr><td style="padding: 6px 12px; border: 1px solid #666;">${label}</td><td style="padding: 6px 12px; border: 1px solid #666; text-align: right;">${count}</td><td style="padding: 6px 12px; border: 1px solid #666; font-style: italic;">${example}</td></tr>`;
             });
+            displayText += `</table>`;
+        }
+        
+        // Show step count distribution as table (perfect solutions only)
+        if (explored.moveCounts && Object.keys(explored.moveCounts).length > 0) {
+            displayText += `<br><br><strong>Step count distribution:</strong><br>`;
+            displayText += `<table style="border-collapse: collapse; margin: 8px auto;">`;
+            displayText += `<tr style="background: rgba(255,255,255,0.1);"><th style="padding: 6px 12px; border: 1px solid #666; text-align: left;">Description</th><th style="padding: 6px 12px; border: 1px solid #666; text-align: right;">Count</th><th style="padding: 6px 12px; border: 1px solid #666; text-align: left;">Example</th></tr>`;
+            
+            // Sort by step count for better readability
+            const sortedSteps = Object.keys(explored.moveCounts).map(Number).sort((a, b) => a - b);
+            sortedSteps.forEach(steps => {
+                const count = explored.moveCounts[steps];
+                const label = steps === 1 ? '1 step' : `${steps} steps`;
+                let example = '';
+                
+                // Add representative solution
+                if (explored.stepExamples[steps]) {
+                    const exampleSolution = explored.stepExamples[steps];
+                    if (exampleSolution.length > 0) {
+                        example = exampleSolution.join(', ');
+                    }
+                }
+                
+                displayText += `<tr><td style="padding: 6px 12px; border: 1px solid #666;">${label}</td><td style="padding: 6px 12px; border: 1px solid #666; text-align: right;">${count}</td><td style="padding: 6px 12px; border: 1px solid #666; font-style: italic;">${example}</td></tr>`;
+            });
+            displayText += `</table>`;
         }
         
         displayText += `</div>`;

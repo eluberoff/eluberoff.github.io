@@ -834,6 +834,41 @@
                 font-size: 18px;
             }
         }
+        
+        /* Scoring Grid Styles */
+        .scoring-grid {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .scoring-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .scoring-row:last-child {
+            border-bottom: none;
+        }
+        
+        .scoring-label {
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .scoring-value {
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            min-width: 32px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -872,6 +907,8 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.110"></script>
+    <script src="game.js?v=1.19.146"></script>
+
+    
 </body>
 </html>
