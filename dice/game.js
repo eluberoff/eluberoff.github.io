@@ -75,7 +75,8 @@ class Game {
             // Run tracking
             runHistory: [], // Array of completed runs with their stats
             currentRunNumber: 1, // Current run number
-            minStepsForPuzzle: null // Minimum steps for perfect solution
+            minStepsForPuzzle: null, // Minimum steps for perfect solution
+            strandedThresholds: null // Cached stranded score thresholds
         };
         
         // Emoji mapping for move tracking
@@ -138,6 +139,134 @@ class Game {
         const parsed = maxDie ? parseInt(maxDie, 10) : 6;
         // Validate: must be between 1 and 9 (reasonable range)
         return isNaN(parsed) ? 6 : Math.max(1, Math.min(9, parsed));
+    }
+    
+    calculateStrandedThresholds(strandedCounts) {
+        if (!strandedCounts || Object.keys(strandedCounts).length === 0) {
+            return null;
+        }
+        
+        // Get total count and sort scores (excluding perfect score of 0)
+        const nonZeroScores = Object.keys(strandedCounts)
+            .map(Number)
+            .filter(score => score > 0)
+            .sort((a, b) => b - a); // Descending order (highest first)
+            
+        if (nonZeroScores.length === 0) return null;
+        
+        const totalNonZero = nonZeroScores.reduce((sum, score) => sum + strandedCounts[score], 0);
+        const maxScore = Math.max(...nonZeroScores);
+        
+        const thresholds = {};
+        
+        // Epic: Always the maximum possible score
+        thresholds.epic = maxScore;
+        
+        // Great: Start with second-highest, only go lower if still under 20%
+        if (nonZeroScores.length > 1) {
+            let cumulative = 0;
+            let greatScore = nonZeroScores[1]; // Start with second-highest
+            
+            // Calculate percentage for second-highest and all above it
+            for (let i = 0; i < nonZeroScores.length; i++) {
+                const score = nonZeroScores[i];
+                cumulative += strandedCounts[score];
+                
+                if (score <= greatScore) {
+                    const percentile = cumulative / totalNonZero;
+                    if (percentile <= 0.20) {
+                        // This score and above is still under 20%, so we can use it
+                        thresholds.great = score;
+                    } else {
+                        // Adding this score would exceed 20%, so stop at previous
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Remove "great" if it's the same as epic
+        if (thresholds.great === thresholds.epic) {
+            delete thresholds.great;
+        }
+        
+        return thresholds;
+    }
+    
+    cacheStrandedThresholds() {
+        if (this.gameState.strandedThresholds) {
+            return; // Already cached
+        }
+        
+        // Run a quick analysis to get stranded counts
+        const explored = { 
+            count: 0, 
+            finalOutcomes: 0, 
+            solutions: 0, 
+            strandedCounts: {}, 
+            moveCounts: {},
+            strandedExamples: {}, 
+            stepExamples: {} 
+        };
+        const maxStranded = { score: 0, sequence: [], diceValues: [] };
+        this.findAllSolutions(null, [], explored, maxStranded);
+        
+        // Calculate and cache thresholds
+        this.gameState.strandedThresholds = this.calculateStrandedThresholds(explored.strandedCounts);
+    }
+    
+    getStrandedThresholdLabel(score) {
+        const thresholds = this.gameState.strandedThresholds;
+        if (!thresholds) return '';
+        
+        if (score === thresholds.epic) return 'Epic';
+        if (score === thresholds.great) return 'Great';
+        return '';
+    }
+    
+    getStrandedScoreText() {
+        const diceEmojis = this.dice.map(dice => this.EMOJI_MAP[dice.value]).join(' + ');
+        const finalScore = this.getFinalScore();
+        const thresholdLabel = this.getStrandedThresholdLabel(finalScore);
+        return `Stranded Score: ${diceEmojis}${thresholdLabel ? ` (${thresholdLabel})` : ''}`;
+    }
+    
+    createStrandedGuidanceHTML() {
+        const thresholds = this.gameState.strandedThresholds;
+        if (!thresholds) return '';
+        
+        let guidanceHTML = `
+            <div>
+                <div style="font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 12px; text-align: center; padding: 0 20px;">
+                    Try to clear the whole board, or aim for the highest possible Stranded Score.
+                </div>
+                <div class="scoring-grid" style="margin: 0 auto; max-width: 200px;">
+        `;
+        
+        if (thresholds.great) {
+            guidanceHTML += `
+                <div class="scoring-row">
+                    <div class="scoring-label">${thresholds.great}+ stranded</div>
+                    <div class="scoring-value">Great</div>
+                </div>
+            `;
+        }
+        
+        if (thresholds.epic) {
+            guidanceHTML += `
+                <div class="scoring-row">
+                    <div class="scoring-label">${thresholds.epic}+ stranded</div>
+                    <div class="scoring-value">Epic</div>
+                </div>
+            `;
+        }
+        
+        guidanceHTML += `
+                </div>
+            </div>
+        `;
+        
+        return guidanceHTML;
     }
     
     detectMobileDevice() {
@@ -333,6 +462,8 @@ class Game {
             this.invalidateSolutionCache();
             // Calculate minimum steps for perfect detection
             this.calculateMinimumSteps();
+            // Cache stranded thresholds for guidance
+            this.cacheStrandedThresholds();
         } else {
             // Fallback to random generation if puzzle data is invalid
             this.placeDice();
@@ -366,6 +497,8 @@ class Game {
             this.invalidateSolutionCache();
             // Calculate minimum steps for perfect detection
             this.calculateMinimumSteps();
+            // Cache stranded thresholds for guidance
+            this.cacheStrandedThresholds();
         } else {
             // Fallback to random generation if demo puzzle data is invalid
             this.placeDice();
@@ -424,6 +557,8 @@ class Game {
         
         // Clear solution cache for new puzzle
         this.invalidateSolutionCache();
+        // Cache stranded thresholds for guidance
+        this.cacheStrandedThresholds();
     }
     isInnerCell(row, col) {
         return row >= 1 && row <= 3 && col >= 1 && col <= 3;
@@ -843,23 +978,24 @@ class Game {
                     </div>
                 `;
             } else {
-                // Stranded score celebration with fancy display logic
-                let strandedSubtitle, strandedDiceDisplay;
-                if (this.dice.length === 1) {
-                    // Single die: show emoji in subtitle
-                    const dieEmoji = this.EMOJI_MAP[this.dice[0].value];
-                    strandedSubtitle = `Stranded score: ${dieEmoji}`;
-                    strandedDiceDisplay = ''; // No separate dice display
-                } else {
-                    // Multiple dice: show total number in subtitle, emojis below
-                    strandedSubtitle = `Stranded score: ${finalScore}`;
-                    strandedDiceDisplay = `<div class="final-dice-container">${finalDiceHTML}</div>`;
+                // Stranded score celebration - use consistent text generation
+                const strandedSubtitle = this.getStrandedScoreText();
+                const finalScore = this.getFinalScore();
+                const thresholdLabel = this.getStrandedThresholdLabel(finalScore);
+                
+                // Create guidance table if thresholds exist and no achievement unlocked
+                let guidanceHTML = '';
+                if (this.gameState.strandedThresholds && !this.isDemoMode && !thresholdLabel) {
+                    guidanceHTML = this.createStrandedGuidanceHTML();
                 }
+                
+                const strandedDiceDisplay = ''; // No separate dice display
                 
                 gridHTML += `
                     <div id="gameOverOverlay" class="stranded-celebration">
                         <div class="stranded-title">Game over</div>
                         <div class="win-subtitle">${strandedSubtitle}</div>
+                        ${guidanceHTML}
                         ${strandedDiceDisplay}
                         <div style="margin-top: 20px; text-align: center;">
                             ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
@@ -1020,6 +1156,11 @@ class Game {
         // Invalidate solution cache since dice state changed
         this.invalidateSolutionCache();
         
+        // Clear cached thresholds since this is a new puzzle
+        this.gameState.strandedThresholds = null;
+        // Recalculate thresholds for the new puzzle
+        this.cacheStrandedThresholds();
+        
         // Reset game state
         this.clearSelectedDie();
         // Clear undo history and emoji sequence
@@ -1085,17 +1226,9 @@ class Game {
             const resultText = this.getCompletionMessage();
             shareText = `${puzzleTitle}\n${resultText}`;
         } else {
-            // Stranded score with fancy logic
-            if (this.dice.length === 1) {
-                // Single die: show emoji in the score line
-                const dieEmoji = this.EMOJI_MAP[this.dice[0].value];
-                shareText = `${puzzleTitle}\nStranded score: ${dieEmoji}`;
-            } else {
-                // Multiple dice: show total, then emojis on next line
-                const resultText = `Stranded score: ${finalScore}`;
-                const diceEmojis = this.dice.map(dice => this.EMOJI_MAP[dice.value]).join('');
-                shareText = `${puzzleTitle}\n${resultText}\n${diceEmojis}`;
-            }
+            // Stranded score - use consistent text generation
+            const strandedText = this.getStrandedScoreText();
+            shareText = `${puzzleTitle}\n${strandedText}`;
         }
         
         // Add current URL to the share message
@@ -1172,13 +1305,44 @@ class Game {
         url.searchParams.delete('puzzle');
         window.history.replaceState({}, '', url.toString());
     }
+    
+    parseSimpleGridPuzzle(gridString) {
+        // Parse 9-digit string like "123000456" as 3x3 grid
+        // Maps to inner 3x3 positions: 6,7,8 / 11,12,13 / 16,17,18
+        const innerPositions = [6, 7, 8, 11, 12, 13, 16, 17, 18];
+        const positions = [];
+        const values = [];
+        
+        for (let i = 0; i < 9; i++) {
+            const digit = parseInt(gridString[i]);
+            if (digit > 0 && digit <= 9) { // Valid dice value
+                positions.push(innerPositions[i]);
+                values.push(digit);
+            }
+        }
+        
+        if (positions.length === 0) {
+            return null; // No valid dice
+        }
+        
+        return { positions, values };
+    }
+    
     loadFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const puzzleParam = urlParams.get('puzzle');
         if (!puzzleParam) {
             return false;
         }
-        const puzzleData = this.decodePuzzleState(puzzleParam);
+        
+        // Check if it's a simple 9-digit grid format (e.g., "123000456")
+        let puzzleData;
+        if (/^\d{9}$/.test(puzzleParam)) {
+            puzzleData = this.parseSimpleGridPuzzle(puzzleParam);
+        } else {
+            puzzleData = this.decodePuzzleState(puzzleParam);
+        }
+        
         if (!puzzleData) {
             // Invalid puzzle data, clear the parameter
             this.clearUrlParameters();
@@ -1197,8 +1361,20 @@ class Game {
         this.gameState.emojiSequence = [];
         this.gameState.totalSteps = 0;
         this.gameState.usedAssists = false;
+        // Reset scoring counters for new puzzle
+        this.gameState.forwardMoves = 0;
+        this.gameState.undoCount = 0;
+        this.gameState.restartCount = 0;
+        this.gameState.hintCount = 0;
+        // Reset run tracking
+        this.gameState.runHistory = [];
+        this.gameState.currentRunNumber = 1;
         // Clear solution cache for new puzzle
         this.invalidateSolutionCache();
+        // Calculate minimum steps for perfect detection
+        this.calculateMinimumSteps();
+        // Cache stranded thresholds for guidance
+        this.cacheStrandedThresholds();
         return true;
     }
     cleanupAnimationClasses() {
@@ -2746,11 +2922,8 @@ class Game {
         const maxStranded = { score: 0, sequence: [], diceValues: [] };
         const solutions = this.getSolutionsWithCaching();
         
-        // For admin display, we still need the detailed analysis
-        if (this.gameState.cachedSolutions === solutions) {
-            // We used cached solutions, so run analysis for detailed stats
-            this.findAllSolutions(null, [], explored, maxStranded);
-        }
+        // For admin display, always run detailed analysis
+        this.findAllSolutions(null, [], explored, maxStranded);
         
         const solutionCount = solutions.length;
         const exploredCount = explored.count;
@@ -2772,7 +2945,7 @@ class Game {
             const sortedScores = Object.keys(explored.strandedCounts).map(Number).sort((a, b) => a - b);
             sortedScores.forEach(score => {
                 const count = explored.strandedCounts[score];
-                const label = score === 0 ? 'Perfect' : `${score} stranded`;
+                const label = score === 0 ? 'Perfect' : `${score} Stranded`;
                 let example = '';
                 
                 // Add representative solution
@@ -2786,6 +2959,16 @@ class Game {
                 displayText += `<tr><td style="padding: 6px 12px; border: 1px solid #666;">${label}</td><td style="padding: 6px 12px; border: 1px solid #666; text-align: right;">${count}</td><td style="padding: 6px 12px; border: 1px solid #666; font-style: italic;">${example}</td></tr>`;
             });
             displayText += `</table>`;
+        }
+        
+        // Show cached thresholds (from initial puzzle analysis)
+        if (this.gameState.strandedThresholds) {
+            const thresholds = this.gameState.strandedThresholds;
+            displayText += `<br><strong>Calculated Thresholds (cached from initial puzzle):</strong><br>`;
+            displayText += `<div style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin: 8px 0;">`;
+            if (thresholds.great) displayText += `Great: at least ${thresholds.great}<br>`;
+            if (thresholds.epic) displayText += `Epic: at least ${thresholds.epic}<br>`;
+            displayText += `</div>`;
         }
         
         // Show step count distribution as table (perfect solutions only)
