@@ -158,37 +158,78 @@ class Game {
         const maxScore = Math.max(...nonZeroScores);
         
         const thresholds = {};
+        const percentiles = {};
         
-        // Epic: Always the maximum possible score
-        thresholds.epic = maxScore;
+        // Calculate cumulative percentiles for each score
+        let cumulative = 0;
+        for (let i = 0; i < nonZeroScores.length; i++) {
+            const score = nonZeroScores[i];
+            cumulative += strandedCounts[score];
+            percentiles[score] = cumulative / totalNonZero;
+        }
         
-        // Great: Start with second-highest, only go lower if still under 20%
+        // Perfect: Always the maximum possible score
+        thresholds.perfect = maxScore;
+        
+        // Amazing: Second-highest score (if different from perfect)
+        if (nonZeroScores.length > 1 && nonZeroScores[1] < maxScore) {
+            thresholds.amazing = nonZeroScores[1];
+        }
+        
+        // Great: Recursively add scores up to 20% (excluding perfect)
         if (nonZeroScores.length > 1) {
             let cumulative = 0;
-            let greatScore = nonZeroScores[1]; // Start with second-highest
+            let greatScore = null;
             
-            // Calculate percentage for second-highest and all above it
-            for (let i = 0; i < nonZeroScores.length; i++) {
+            // Start from the highest non-perfect score
+            for (let i = 1; i < nonZeroScores.length; i++) {
                 const score = nonZeroScores[i];
                 cumulative += strandedCounts[score];
                 
-                if (score <= greatScore) {
-                    const percentile = cumulative / totalNonZero;
-                    if (percentile <= 0.20) {
-                        // This score and above is still under 20%, so we can use it
-                        thresholds.great = score;
-                    } else {
-                        // Adding this score would exceed 20%, so stop at previous
-                        break;
-                    }
+                const percentile = cumulative / totalNonZero;
+                if (percentile <= 0.20) {
+                    // This score and above is still under 20%, so we can use it
+                    greatScore = score;
+                } else {
+                    // Adding this score would exceed 20%, so stop at previous
+                    break;
                 }
+            }
+            
+            if (greatScore !== null) {
+                thresholds.great = greatScore;
             }
         }
         
-        // Remove "great" if it's the same as epic
-        if (thresholds.great === thresholds.epic) {
-            delete thresholds.great;
+        // Remove "amazing" if it's the same as "great"
+        if (thresholds.amazing === thresholds.great) {
+            delete thresholds.amazing;
         }
+        
+        // If there's only one threshold between amazing and great, rename based on percentage
+        if ((thresholds.amazing && !thresholds.great) || (!thresholds.amazing && thresholds.great)) {
+            const singleThresholdScore = thresholds.amazing || thresholds.great;
+            // Calculate cumulative percentage for this score and above
+            const cumulativeCount = Object.keys(strandedCounts)
+                .map(Number)
+                .filter(score => score >= singleThresholdScore)
+                .reduce((sum, score) => sum + strandedCounts[score], 0);
+            const cumulativePercentage = cumulativeCount / totalNonZero;
+            
+            // If less than 15%, call it Amazing; otherwise Great
+            if (cumulativePercentage < 0.15) {
+                thresholds.amazing = singleThresholdScore;
+                delete thresholds.great;
+            } else {
+                thresholds.great = singleThresholdScore;
+                delete thresholds.amazing;
+            }
+        }
+        
+        // Store percentiles and counts for admin display
+        thresholds._percentiles = percentiles;
+        thresholds._strandedCounts = strandedCounts;
+        thresholds._totalNonZero = totalNonZero;
         
         return thresholds;
     }
@@ -219,7 +260,8 @@ class Game {
         const thresholds = this.gameState.strandedThresholds;
         if (!thresholds) return '';
         
-        if (score === thresholds.epic) return 'Epic';
+        if (score === thresholds.perfect) return 'Perfect';
+        if (score === thresholds.amazing) return 'Amazing';
         if (score === thresholds.great) return 'Great';
         return '';
     }
@@ -258,11 +300,11 @@ class Game {
             `;
         }
         
-        if (thresholds.epic) {
+        if (thresholds.amazing) {
             guidanceHTML += `
                 <div class="scoring-row">
-                    <div class="scoring-label">${thresholds.epic}+ stranded</div>
-                    <div class="scoring-value">Epic</div>
+                    <div class="scoring-label">${thresholds.amazing}+ stranded</div>
+                    <div class="scoring-value">Amazing</div>
                 </div>
             `;
         }
@@ -2988,8 +3030,31 @@ class Game {
             const thresholds = this.gameState.strandedThresholds;
             displayText += `<br><strong>Calculated Thresholds (cached from initial puzzle):</strong><br>`;
             displayText += `<div style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin: 8px 0;">`;
-            if (thresholds.great) displayText += `Great: at least ${thresholds.great}<br>`;
-            if (thresholds.epic) displayText += `Epic: at least ${thresholds.epic}<br>`;
+            
+            if (thresholds.great && thresholds._percentiles) {
+                // Calculate cumulative percentage for "at least" this score
+                const greatPercentile = thresholds._percentiles[thresholds.great];
+                const greatPercentage = (greatPercentile * 100).toFixed(1);
+                displayText += `Great: ${thresholds.great}+ stranded (${greatPercentage}%)<br>`;
+            }
+            
+            if (thresholds.amazing && thresholds._percentiles) {
+                // Calculate cumulative percentage for "at least" this score
+                const amazingCount = thresholds._strandedCounts[thresholds.amazing];
+                const amazingAndHigherCount = Object.keys(thresholds._strandedCounts)
+                    .map(Number)
+                    .filter(score => score >= thresholds.amazing)
+                    .reduce((sum, score) => sum + thresholds._strandedCounts[score], 0);
+                const amazingPercentage = ((amazingAndHigherCount / thresholds._totalNonZero) * 100).toFixed(1);
+                displayText += `Amazing: ${thresholds.amazing}+ stranded (${amazingPercentage}%)<br>`;
+            }
+            
+            if (thresholds.perfect && thresholds._strandedCounts) {
+                const perfectCount = thresholds._strandedCounts[thresholds.perfect];
+                const perfectPercentage = ((perfectCount / thresholds._totalNonZero) * 100).toFixed(1);
+                displayText += `Perfect: exactly ${thresholds.perfect} (${perfectPercentage}%)<br>`;
+            }
+            
             displayText += `</div>`;
         }
         
