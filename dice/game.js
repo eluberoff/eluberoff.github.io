@@ -65,6 +65,7 @@ class Game {
             undoCount: 0, // Number of undos used
             restartCount: 0, // Number of restarts used  
             hintCount: 0, // Number of hints used
+            backtrackCount: 0, // Number of backtracks during transient movement
             // Legacy tracking (kept for compatibility)
             totalSteps: 0, // Total number of dice movement steps
             usedAssists: false, // Track if undo, reset, or backtracking was used
@@ -348,6 +349,10 @@ class Game {
                     <span class="scoring-label">Undos:</span>
                     <span class="scoring-value">${this.gameState.undoCount}</span>
                 </div>
+                <div class="scoring-row">
+                    <span class="scoring-label">Backtracks:</span>
+                    <span class="scoring-value">${this.gameState.backtrackCount}</span>
+                </div>
             </div>
         `;
     }
@@ -455,6 +460,7 @@ class Game {
             this.gameState.undoCount = 0;
             this.gameState.restartCount = 0;
             this.gameState.hintCount = 0;
+            this.gameState.backtrackCount = 0;
             // Reset run tracking
             this.gameState.runHistory = [];
             this.gameState.currentRunNumber = 1;
@@ -490,6 +496,7 @@ class Game {
             this.gameState.undoCount = 0;
             this.gameState.restartCount = 0;
             this.gameState.hintCount = 0;
+            this.gameState.backtrackCount = 0;
             // Reset run tracking
             this.gameState.runHistory = [];
             this.gameState.currentRunNumber = 1;
@@ -554,6 +561,7 @@ class Game {
         this.gameState.undoCount = 0;
         this.gameState.restartCount = 0;
         this.gameState.hintCount = 0;
+        this.gameState.backtrackCount = 0;
         
         // Clear solution cache for new puzzle
         this.invalidateSolutionCache();
@@ -1140,6 +1148,7 @@ class Game {
         this.gameState.forwardMoves = 0;
         this.gameState.undoCount = 0;
         this.gameState.hintCount = 0;
+        this.gameState.backtrackCount = 0;
         this.updateButtons();
         this.render();
         this.updateSolutionDisplay(); // Update solutions after reset
@@ -1366,6 +1375,7 @@ class Game {
         this.gameState.undoCount = 0;
         this.gameState.restartCount = 0;
         this.gameState.hintCount = 0;
+        this.gameState.backtrackCount = 0;
         // Reset run tracking
         this.gameState.runHistory = [];
         this.gameState.currentRunNumber = 1;
@@ -2242,6 +2252,7 @@ class Game {
         if (trailLength > 0 && newPosition === this.gameState.trailCells[trailLength - 1]) {
             // This is a backtrack move - undo the last step
             this.gameState.usedAssists = true; // Mark that backtracking was used
+            this.gameState.backtrackCount++; // Count this backtrack
             this.gameState.trailCells.pop(); // Remove the last trail position
             this.gameState.transientTile.position = newPosition;
             this.gameState.movesRemaining++; // Add back a move
