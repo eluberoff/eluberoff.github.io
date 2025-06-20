@@ -231,17 +231,23 @@ class Game {
         return `Stranded Score: ${diceEmojis}${thresholdLabel ? ` (${thresholdLabel})` : ''}`;
     }
     
-    createStrandedGuidanceHTML() {
+    createStrandedGuidanceHTML(hideMessage = false) {
         const thresholds = this.gameState.strandedThresholds;
         if (!thresholds) return '';
         
-        let guidanceHTML = `
-            <div>
+        let guidanceHTML = `<div>`;
+        
+        // Only show the message if not achieved
+        if (!hideMessage) {
+            guidanceHTML += `
                 <div style="font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 12px; text-align: center; padding: 0 20px;">
                     Try to clear the whole board, or aim for the highest possible Stranded Score.
                 </div>
-                <div class="scoring-grid" style="margin: 0 auto; max-width: 200px;">
-        `;
+            `;
+        }
+        
+        // Always show the table
+        guidanceHTML += `<div class="scoring-grid">`;
         
         if (thresholds.great) {
             guidanceHTML += `
@@ -977,10 +983,11 @@ class Game {
                 const finalScore = this.getFinalScore();
                 const thresholdLabel = this.getStrandedThresholdLabel(finalScore);
                 
-                // Create guidance table if thresholds exist and no achievement unlocked
+                // Create guidance table if thresholds exist
                 let guidanceHTML = '';
-                if (this.gameState.strandedThresholds && !this.isDemoMode && !thresholdLabel) {
-                    guidanceHTML = this.createStrandedGuidanceHTML();
+                if (this.gameState.strandedThresholds && !this.isDemoMode) {
+                    // Hide message if achievement unlocked, but always show table
+                    guidanceHTML = this.createStrandedGuidanceHTML(!!thresholdLabel);
                 }
                 
                 const strandedDiceDisplay = ''; // No separate dice display
