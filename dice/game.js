@@ -1,10 +1,10 @@
 // Hardcoded daily puzzles (curated for solvability)
 const DAILY_PUZZLES = [
-    'MTYsMTgsOCw3fDMsNiw1LDQ%3D',                       // Day 1 (June 16, 2025)
+    'MTYsMTgsOCw3fDMsNiw1LDQ=',                         // Day 1 (June 16, 2025)
     'MTYsMTIsMTMsNiw4LDExfDYsNSwyLDQsMiw1',             // Day 2 (June 17, 2025)
     'MTIsMTMsNywxNiwxNyw2fDIsMiw1LDIsMyw0',             // Day 3 (June 18, 2025)
     'OCwxOCwxMiwxNyw2LDEzfDYsMSwzLDYsMSwx',             // Day 4 (June 19, 2025)
-    'MTIsNyw2LDgsMTcsMTN8NiwzLDQsNSwyLDY%3D',           // Day 5 (June 20, 2025)
+    'MTIsNyw2LDgsMTcsMTN8NiwzLDQsNSwyLDY=',             // Day 5 (June 20, 2025)
     'MTEsMTcsMTgsNiw4LDEyfDEsMywyLDIsNSw1',             // Day 6 (June 21, 2025)
     'OCwxMiwxNiwxNyw2LDEzfDYsMSw1LDUsMSwy',             // Day 7 (June 22, 2025)
     'MTgsMTYsNywxMXwyLDMsNCwz',                         // Day 8 (June 23, 2025)
@@ -12,22 +12,22 @@ const DAILY_PUZZLES = [
     'OCwxOCw3LDE3LDEzLDEyfDMsMyw0LDQsMiw0',             // Day 10 (June 25, 2025)
     'NiwxMyw3LDExLDE2LDE4fDIsNiw0LDEsNSw2',             // Day 11 (June 26, 2025)
     'OCwxNiwxMSwxNyw3LDEzfDYsMSw1LDQsNCwy',             // Day 12 (June 27, 2025)
-    'MTgsNiwxNiwxMyw3LDh8NSwyLDEsMSw2LDU%3D',           // Day 13 (June 28, 2025)
-    'MTgsMTcsMTYsMTEsMTMsMTJ8Niw1LDIsNiwyLDM%3D',       // Day 14 (June 29, 2025)
+    'MTgsNiwxNiwxMyw3LDh8NSwyLDEsMSw2LDU=',             // Day 13 (June 28, 2025)
+    'MTgsMTcsMTYsMTEsMTMsMTJ8Niw1LDIsNiwyLDM=',         // Day 14 (June 29, 2025)
     'MTgsMTYsNiwxMXw2LDIsMyw1',                         // Day 15 (June 30, 2025)
-    'Niw4LDEzLDE4LDE2fDUsNCwzLDYsMg%3D%3D',             // Day 16 (July 1, 2025)
-    'MTYsMTIsMTgsMTcsOCwxM3wzLDMsNiwyLDQsNA%3D%3D',     // Day 17 (July 2, 2025)
+    'Niw4LDEzLDE4LDE2fDUsNCwzLDYsMg==',                 // Day 16 (July 1, 2025)
+    'MTYsMTIsMTgsMTcsOCwxM3wzLDMsNiwyLDQsNA==',         // Day 17 (July 2, 2025)
     'MTEsMTcsOCwxNiwxMiw2fDMsNiw2LDIsMSw2',             // Day 18 (July 3, 2025)
     'MTYsNiwxMiwxNywxMSwxOHwxLDMsMywxLDUsMQ==',         // Day 19 (July 4, 2025)
     'MTEsMTgsNyw2LDEzLDEyfDMsNCwxLDQsNiw2',             // Day 20 (July 5, 2025)
-    'MTEsMTgsMTMsMTcsOCwxMnwxLDMsNiw2LDQsNA%3D%3D',     // Day 21 (July 6, 2025)
-    'OCw3LDE2LDZ8NCw1LDMsNg%3D%3D',                     // Day 22 (July 7, 2025)
-    'OCwxMiwxNywxOCw3fDMsNSw2LDIsNg%3D%3D',             // Day 23 (July 8, 2025)
+    'MTEsMTgsMTMsMTcsOCwxMnwxLDMsNiw2LDQsNA==',         // Day 21 (July 6, 2025)
+    'OCw3LDE2LDZ8NCw1LDMsNg==',                         // Day 22 (July 7, 2025)
+    'OCwxMiwxNywxOCw3fDMsNSw2LDIsNg==',                 // Day 23 (July 8, 2025)
     'MTEsMTgsNyw2LDEzLDEyfDUsMywyLDEsMSwy',             // Day 24 (July 9, 2025)
     'MTYsNiw3LDgsMTcsMTN8MiwzLDMsMSwxLDQ=',             // Day 25 (July 10, 2025)
     'NiwxMywxMiwxOCwxNiw4fDEsMywyLDQsNSwx',             // Day 26 (July 11, 2025)
     'NiwxNiwxMSw4LDEyLDE4fDEsNSw2LDYsNSwx',             // Day 27 (July 12, 2025)
-    'Niw4LDEzLDE3LDcsMTJ8MywxLDYsNiw0LDQ%3D'            // Day 28 (July 13, 2025)
+    'Niw4LDEzLDE3LDcsMTJ8MywxLDYsNiw0LDQ='              // Day 28 (July 13, 2025)
 ];
 
 // Demo puzzle for getting started (easy tutorial)
@@ -65,7 +65,6 @@ class Game {
             undoCount: 0, // Number of undos used
             restartCount: 0, // Number of restarts used  
             hintCount: 0, // Number of hints used
-            backtrackCount: 0, // Number of backtracks during transient movement
             // Legacy tracking (kept for compatibility)
             totalSteps: 0, // Total number of dice movement steps
             usedAssists: false, // Track if undo, reset, or backtracking was used
@@ -316,7 +315,7 @@ class Game {
         const runNumber = this.gameState.currentRunNumber;
         const ordinal = this.getOrdinal(runNumber);
         
-        let message = `${ordinal} run: cleared in ${moves} moves`;
+        let message = `${ordinal} run: cleared in ${moves} moves!`;
         
         // Check if this is a perfect run
         const isPerfect = this.gameState.minStepsForPuzzle && 
@@ -324,12 +323,9 @@ class Game {
             hints === 0;
         
         if (isPerfect) {
-            message += ' (perfect)';
-        } else if (hints === 1) {
-            message += ' (1 hint)';
-        } else if (hints > 1) {
-            message += ` (${hints} hints)`;
+            message = `${ordinal} run: cleared in ${moves} moves (perfect)!`;
         }
+        // Don't show hints in the header - will show as emojis in share message
         
         return message;
     }
@@ -338,20 +334,12 @@ class Game {
         return `
             <div class="scoring-grid">
                 <div class="scoring-row">
-                    <span class="scoring-label">Moves:</span>
-                    <span class="scoring-value">${this.gameState.forwardMoves}</span>
-                </div>
-                <div class="scoring-row">
                     <span class="scoring-label">Hints:</span>
                     <span class="scoring-value">${this.gameState.hintCount}</span>
                 </div>
                 <div class="scoring-row">
                     <span class="scoring-label">Undos:</span>
                     <span class="scoring-value">${this.gameState.undoCount}</span>
-                </div>
-                <div class="scoring-row">
-                    <span class="scoring-label">Backtracks:</span>
-                    <span class="scoring-value">${this.gameState.backtrackCount}</span>
                 </div>
             </div>
         `;
@@ -460,7 +448,6 @@ class Game {
             this.gameState.undoCount = 0;
             this.gameState.restartCount = 0;
             this.gameState.hintCount = 0;
-            this.gameState.backtrackCount = 0;
             // Reset run tracking
             this.gameState.runHistory = [];
             this.gameState.currentRunNumber = 1;
@@ -496,7 +483,6 @@ class Game {
             this.gameState.undoCount = 0;
             this.gameState.restartCount = 0;
             this.gameState.hintCount = 0;
-            this.gameState.backtrackCount = 0;
             // Reset run tracking
             this.gameState.runHistory = [];
             this.gameState.currentRunNumber = 1;
@@ -975,7 +961,7 @@ class Game {
                 
                 gridHTML += `
                     <div id="gameOverOverlay" class="win-celebration">
-                        <div class="win-title">Success!</div>
+                        <div class="win-title">Run complete</div>
                         <div class="win-subtitle">${this.getCompletionMessage()}</div>
                         ${scoringGridHTML}
                         <div class="final-dice-container">${finalDiceHTML}</div>
@@ -1001,7 +987,7 @@ class Game {
                 
                 gridHTML += `
                     <div id="gameOverOverlay" class="stranded-celebration">
-                        <div class="stranded-title">Game over</div>
+                        <div class="stranded-title">Run complete</div>
                         <div class="win-subtitle">${strandedSubtitle}</div>
                         ${guidanceHTML}
                         ${strandedDiceDisplay}
@@ -1148,7 +1134,6 @@ class Game {
         this.gameState.forwardMoves = 0;
         this.gameState.undoCount = 0;
         this.gameState.hintCount = 0;
-        this.gameState.backtrackCount = 0;
         this.updateButtons();
         this.render();
         this.updateSolutionDisplay(); // Update solutions after reset
@@ -1238,6 +1223,18 @@ class Game {
             // Stranded score - use consistent text generation
             const strandedText = this.getStrandedScoreText();
             shareText = `${puzzleTitle}\n${strandedText}`;
+        }
+        
+        // Add hints as emojis if more than 0
+        if (this.gameState.hintCount > 0) {
+            const hintEmojis = '💡'.repeat(this.gameState.hintCount);
+            shareText += `\nhints: ${hintEmojis}`;
+        }
+        
+        // Add undos as emojis if more than 0
+        if (this.gameState.undoCount > 0) {
+            const undoEmojis = '🔄'.repeat(this.gameState.undoCount);
+            shareText += `\nundos: ${undoEmojis}`;
         }
         
         // Add current URL to the share message
@@ -2020,8 +2017,9 @@ class Game {
                 value: die.value,
                 position: die.position
             })),
-            totalSteps: this.gameState.totalSteps
-            // Don't save scoring counters - they should never decrease via undo
+            totalSteps: this.gameState.totalSteps,
+            // Save the die value that was moved for undo tracking
+            movedDieValue: this.gameState.selectedDie ? this.gameState.selectedDie.value : 0
         };
         this.gameState.history.push(stateCopy);
         this.updateButtons();
@@ -2038,6 +2036,12 @@ class Game {
         
         // Restore the previous state
         const previousState = this.gameState.history.pop();
+        
+        // Decrement forwardMoves by the die value that was moved
+        if (previousState.movedDieValue) {
+            this.gameState.forwardMoves -= previousState.movedDieValue;
+        }
+        
         this.dice = previousState.dice;
         // Don't restore initialDice - it should never change from original puzzle
         this.gameState.totalSteps = previousState.totalSteps;
@@ -2252,7 +2256,7 @@ class Game {
         if (trailLength > 0 && newPosition === this.gameState.trailCells[trailLength - 1]) {
             // This is a backtrack move - undo the last step
             this.gameState.usedAssists = true; // Mark that backtracking was used
-            this.gameState.backtrackCount++; // Count this backtrack
+            this.gameState.forwardMoves--; // Decrement forward moves counter
             this.gameState.trailCells.pop(); // Remove the last trail position
             this.gameState.transientTile.position = newPosition;
             this.gameState.movesRemaining++; // Add back a move
