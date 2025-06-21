@@ -871,6 +871,82 @@
             min-width: 32px;
             text-align: right;
         }
+        
+        /* History Dropdown Styles */
+        .archive-link-wrapper {
+            display: inline-block;
+            position: relative;
+            margin-left: 8px;
+        }
+        
+        .archive-link {
+            color: #999;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .archive-link:hover,
+        .archive-link.active {
+            color: #fff;
+        }
+        
+        .history-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
+            min-width: 280px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .history-dropdown.show {
+            display: block;
+        }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #333;
+            font-size: 13px;
+            gap: 40px;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .history-item.current {
+            background-color: rgba(255, 255, 255, 0.05);
+            font-weight: 500;
+        }
+        
+        .history-puzzle-number {
+            color: #fff;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .history-date {
+            color: #ccc;
+            font-size: 13px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -909,7 +985,7 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.176"></script>
+    <script src="game.js?v=1.19.189"></script>
 
     
 </body>

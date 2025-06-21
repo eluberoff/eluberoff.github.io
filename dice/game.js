@@ -176,7 +176,7 @@ class Game {
             thresholds.amazing = nonZeroScores[1];
         }
         
-        // Great: Recursively add scores up to 20% (excluding perfect)
+        // Great: Recursively add scores up to 30% (excluding perfect)
         if (nonZeroScores.length > 1) {
             let cumulative = 0;
             let greatScore = null;
@@ -187,11 +187,11 @@ class Game {
                 cumulative += strandedCounts[score];
                 
                 const percentile = cumulative / totalNonZero;
-                if (percentile <= 0.20) {
-                    // This score and above is still under 20%, so we can use it
+                if (percentile <= 0.30) {
+                    // This score and above is still under 30%, so we can use it
                     greatScore = score;
                 } else {
-                    // Adding this score would exceed 20%, so stop at previous
+                    // Adding this score would exceed 30%, so stop at previous
                     break;
                 }
             }
@@ -260,9 +260,20 @@ class Game {
         const thresholds = this.gameState.strandedThresholds;
         if (!thresholds) return '';
         
-        if (score === thresholds.perfect) return 'Perfect';
-        if (score === thresholds.amazing) return 'Amazing';
-        if (score === thresholds.great) return 'Great';
+        // Check exact match for perfect first and return immediately
+        if (thresholds.perfect && score === thresholds.perfect) {
+            return 'Perfect';
+        }
+        
+        // Check from highest to lowest threshold for "at least" matches
+        if (thresholds.amazing && score >= thresholds.amazing) {
+            return 'Amazing';
+        }
+        
+        if (thresholds.great && score >= thresholds.great) {
+            return 'Great';
+        }
+        
         return '';
     }
     
@@ -347,10 +358,22 @@ class Game {
         return this.decodePuzzleState(encodedPuzzle);
     }
     
-    getFormattedDate() {
+    getFormattedDate(overridePuzzleNumber = null) {
         // Use simple date formatting based on user's local timezone
-        const today = new Date();
-        return today.toLocaleDateString('en-US', {
+        const LAUNCH_EPOCH = 1750046400000; // June 14, 2025 midnight ET in milliseconds
+        const MS_PER_DAY = 24 * 60 * 60 * 1000;
+        
+        let date;
+        if (overridePuzzleNumber) {
+            // Calculate date from puzzle number
+            const daysFromLaunch = overridePuzzleNumber - 1;
+            date = new Date(LAUNCH_EPOCH + (daysFromLaunch * MS_PER_DAY));
+        } else {
+            date = new Date();
+        }
+        
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
             year: 'numeric',
             month: 'long', 
             day: 'numeric'
@@ -411,16 +434,187 @@ class Game {
         const subtitleElement = document.getElementById('puzzleSubtitle');
         
         if (this.isAdminMode) {
-            titleElement.textContent = 'Disappearing Dice';
-            subtitleElement.textContent = '';
+            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
+            const formattedDate = this.getFormattedDate(this.gameState.overridePuzzleNumber);
+            
+            titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
+            subtitleElement.innerHTML = `${formattedDate} <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>`;
+            
+            // Add dropdown if it doesn't exist
+            if (!document.getElementById('historyDropdown')) {
+                this.createHistoryDropdown();
+            }
+            
+            // Add click handler for the archive link
+            const archiveLink = document.getElementById('archiveLink');
+            if (archiveLink && !archiveLink.hasClickHandler) {
+                archiveLink.hasClickHandler = true;
+                archiveLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleHistoryDropdown();
+                });
+            }
         } else if (this.isDemoMode) {
             titleElement.textContent = 'Disappearing Dice';
             subtitleElement.textContent = 'Getting Started';
         } else {
-            const puzzleNumber = this.getDailyPuzzleNumber();
-            const formattedDate = this.getFormattedDate();
+            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
+            const formattedDate = this.getFormattedDate(this.gameState.overridePuzzleNumber);
+            
+            // Set the title as plain text
             titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
-            subtitleElement.textContent = formattedDate;
+            
+            // Create subtitle with date and archive link
+            subtitleElement.innerHTML = `${formattedDate} <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>`;
+            
+            // Add dropdown if it doesn't exist
+            if (!document.getElementById('historyDropdown')) {
+                this.createHistoryDropdown();
+            }
+            
+            // Add click handler for the archive link
+            const archiveLink = document.getElementById('archiveLink');
+            if (archiveLink && !archiveLink.hasClickHandler) {
+                archiveLink.hasClickHandler = true;
+                archiveLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleHistoryDropdown();
+                });
+            }
+        }
+    }
+    
+    createHistoryDropdown() {
+        const dropdown = document.createElement('div');
+        dropdown.id = 'historyDropdown';
+        dropdown.className = 'history-dropdown';
+        
+        // Position it relative to the subtitle element
+        const subtitleElement = document.getElementById('puzzleSubtitle');
+        if (subtitleElement) {
+            subtitleElement.style.position = 'relative';
+            subtitleElement.appendChild(dropdown);
+        }
+        
+        // Populate with puzzle history
+        this.updateHistoryDropdown();
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.archive-link-wrapper')) {
+                dropdown.classList.remove('show');
+                // Remove active class from archive link
+                const archiveLink = document.getElementById('archiveLink');
+                if (archiveLink) {
+                    archiveLink.classList.remove('active');
+                }
+            }
+        });
+    }
+    
+    updateHistoryDropdown() {
+        const dropdown = document.getElementById('historyDropdown');
+        if (!dropdown) return;
+        
+        const currentPuzzleNumber = this.getDailyPuzzleNumber();
+        const totalPuzzles = DAILY_PUZZLES.length;
+        
+        // Show up to 30 previous puzzles
+        let html = '';
+        for (let i = 0; i < Math.min(30, currentPuzzleNumber); i++) {
+            const puzzleNum = currentPuzzleNumber - i;
+            const isCurrentPuzzle = puzzleNum === (this.gameState.overridePuzzleNumber || currentPuzzleNumber);
+            const date = this.getFormattedDate(puzzleNum);
+            
+            html += `
+                <div class="history-item ${isCurrentPuzzle ? 'current' : ''}" data-puzzle="${puzzleNum}">
+                    <span class="history-puzzle-number">Disappearing Dice #${puzzleNum}</span>
+                    <span class="history-date">${date}</span>
+                </div>
+            `;
+        }
+        
+        dropdown.innerHTML = html;
+        
+        // Add click handlers to history items
+        dropdown.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const puzzleNum = parseInt(item.dataset.puzzle);
+                this.loadPuzzle(puzzleNum);
+                dropdown.classList.remove('show');
+            });
+        });
+    }
+    
+    toggleHistoryDropdown() {
+        const dropdown = document.getElementById('historyDropdown');
+        const archiveLink = document.getElementById('archiveLink');
+        
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                this.updateHistoryDropdown();
+                if (archiveLink) {
+                    archiveLink.classList.add('active');
+                }
+            } else {
+                if (archiveLink) {
+                    archiveLink.classList.remove('active');
+                }
+            }
+        }
+    }
+    
+    loadPuzzle(puzzleNumber) {
+        // Store the override puzzle number
+        this.gameState.overridePuzzleNumber = puzzleNumber;
+        
+        // Reset game state
+        this.gameState.runCount = 0;
+        this.gameState.hintCount = 0;
+        this.gameState.undoCount = 0;
+        this.gameState.forwardMoves = 0;
+        this.gameState.backtracks = 0;
+        this.gameState.runHistory = [];
+        
+        // Clear cached puzzle analysis data
+        this.gameState.cachedSolutions = null;
+        this.gameState.strandedThresholds = null;
+        this.gameState.minStepsForPuzzle = null;
+        
+        // Load the puzzle data
+        const puzzleIndex = (puzzleNumber - 1) % DAILY_PUZZLES.length;
+        const encodedPuzzle = DAILY_PUZZLES[puzzleIndex];
+        const puzzleData = this.decodePuzzleState(encodedPuzzle);
+        
+        // Create dice from puzzle data
+        if (puzzleData) {
+            this.dice = puzzleData.positions.map((position, index) => ({
+                value: puzzleData.values[index],
+                position: position,
+                id: `dice-${index}`
+            }));
+            // Store initial configuration for reset
+            this.initialDice = this.dice.map(dice => ({ ...dice }));
+            // Clear undo history
+            this.gameState.history = [];
+            this.gameState.totalSteps = 0;
+            this.gameState.usedAssists = false;
+            
+            // Cache the stranded thresholds
+            this.cacheStrandedThresholds();
+        }
+        
+        // Update the title and render
+        this.updateGameTitle();
+        this.render();
+        
+        // Update solution display if in admin mode
+        if (this.isAdminMode && this.solutionDisplay) {
+            this.updateSolutionDisplay();
         }
     }
     
@@ -860,9 +1054,7 @@ class Game {
             ? `<button id="shareButton" class="game-btn share-btn">${BUTTON_LABELS.SAVE}</button>`
             : '';
             
-        const hintButtonHTML = this.isAdminMode 
-            ? ''
-            : `<button id="hintButton" class="game-btn hint-btn">${BUTTON_LABELS.HINT}</button>`;
+        const hintButtonHTML = `<button id="hintButton" class="game-btn hint-btn">${BUTTON_LABELS.HINT}</button>`;
             
         const buttonsHTML = `
             <div class="button-container">
@@ -1257,7 +1449,7 @@ class Game {
         if (this.isAdminMode) {
             puzzleTitle = 'Disappearing Dice';
         } else {
-            const puzzleNumber = this.getDailyPuzzleNumber();
+            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
             puzzleTitle = `Disappearing Dice #${puzzleNumber}`;
         }
         
@@ -2989,7 +3181,7 @@ class Game {
         // For admin display, always run detailed analysis
         this.findAllSolutions(null, [], explored, maxStranded);
         
-        const solutionCount = solutions.length;
+        const solutionCount = explored.solutions;
         const exploredCount = explored.count;
         const percentage = explored.finalOutcomes > 0 ? ((solutionCount / explored.finalOutcomes) * 100).toFixed(3) : '0.000';
         
@@ -3025,10 +3217,11 @@ class Game {
             displayText += `</table>`;
         }
         
-        // Show cached thresholds (from initial puzzle analysis)
-        if (this.gameState.strandedThresholds) {
-            const thresholds = this.gameState.strandedThresholds;
-            displayText += `<br><strong>Calculated Thresholds (cached from initial puzzle):</strong><br>`;
+        // Calculate thresholds from fresh analysis
+        const freshThresholds = this.calculateStrandedThresholds(explored.strandedCounts);
+        if (freshThresholds) {
+            const thresholds = freshThresholds;
+            displayText += `<br><strong>Calculated Thresholds:</strong><br>`;
             displayText += `<div style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin: 8px 0;">`;
             
             if (thresholds.great && thresholds._percentiles) {
