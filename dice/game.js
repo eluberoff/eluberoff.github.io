@@ -1454,16 +1454,20 @@ class Game {
         }
         
         const finalScore = this.getFinalScore();
+        const currentUrl = window.location.href;
         let shareText;
+        
+        // Start with title and URL
+        shareText = `${puzzleTitle}\n${currentUrl}\n`;
         
         if (finalScore === 0) {
             // Perfect score - just current run
             const resultText = this.getCompletionMessage();
-            shareText = `${puzzleTitle}\n${resultText}`;
+            shareText += `\n${resultText}`;
         } else {
             // Stranded score - use consistent text generation
             const strandedText = this.getStrandedScoreText();
-            shareText = `${puzzleTitle}\n${strandedText}`;
+            shareText += `\n${strandedText}`;
         }
         
         // Add hints as emojis if more than 0
@@ -1477,10 +1481,6 @@ class Game {
             const undoEmojis = '🔄'.repeat(this.gameState.undoCount);
             shareText += `\nundos: ${undoEmojis}`;
         }
-        
-        // Add current URL to the share message
-        const currentUrl = window.location.href;
-        shareText += `\n\n${currentUrl}`;
         
         this.copyToClipboardSolution(shareText);
     }
