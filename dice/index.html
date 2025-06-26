@@ -284,6 +284,48 @@
             color: white;
             opacity: 0.9;
         }
+        .win-subtitle.no-success-message {
+            padding: 0 20px;
+            font-size: 16px;
+        }
+        .share-message-placeholder {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .share-solution-message {
+            opacity: 0;
+            height: 0;
+            line-height: 0;
+            position: relative;
+            top: 16px;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            transition: opacity 0.3s ease;
+        }
+        .start-over-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+        }
+        .start-over-arrow {
+            transform: rotate(-45deg);
+            position: relative;
+            top: 10px;
+        }
+        .start-over-text {
+            color: white;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .bonus-puzzle-message {
+            padding: 15px 25px 0;
+            color: white;
+            font-size: 15px;
+            font-style: italic;
+        }
         .emoji-sequence {
             font-size: 32px;
             margin: 10px 0 20px 0;
@@ -985,7 +1027,7 @@
             </div>
         </div>
     </div>
-    <script src="game.js?v=1.19.190"></script>
+    <script src="game.js?v=1.19.202"></script>
 
     
 </body>

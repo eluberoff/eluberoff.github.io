@@ -76,7 +76,8 @@ class Game {
             runHistory: [], // Array of completed runs with their stats
             currentRunNumber: 1, // Current run number
             minStepsForPuzzle: null, // Minimum steps for perfect solution
-            strandedThresholds: null // Cached stranded score thresholds
+            strandedThresholds: null, // Cached stranded score thresholds
+            hasSucceededThisSession: false // Track if player has ever cleared the board in this session
         };
         
         // Emoji mapping for move tracking
@@ -1184,6 +1185,9 @@ class Game {
             if (finalScore === 0) {
                 // Perfect score celebration!
                 
+                // Mark that player has succeeded in this session
+                this.gameState.hasSucceededThisSession = true;
+                
                 // Track completed run
                 const isPerfect = this.gameState.minStepsForPuzzle && 
                     this.gameState.forwardMoves === this.gameState.minStepsForPuzzle && 
@@ -1208,6 +1212,7 @@ class Game {
                         <div style="margin-top: 20px; text-align: center;">
                             ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
                             <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
+                            <div class="bonus-puzzle-message">Bonus puzzle: start a new run and try to leave as many points stranded as possible.</div>
                         </div>
                     </div>
                 `;
@@ -1217,27 +1222,51 @@ class Game {
                 const finalScore = this.getFinalScore();
                 const thresholdLabel = this.getStrandedThresholdLabel(finalScore);
                 
-                // Create guidance table if thresholds exist
-                let guidanceHTML = '';
-                if (this.gameState.strandedThresholds && !this.isDemoMode) {
-                    // Hide message if achievement unlocked, but always show table
-                    guidanceHTML = this.createStrandedGuidanceHTML(!!thresholdLabel);
-                }
-                
-                const strandedDiceDisplay = ''; // No separate dice display
-                
-                gridHTML += `
-                    <div id="gameOverOverlay" class="stranded-celebration">
-                        <div class="stranded-title">Run complete</div>
-                        <div class="win-subtitle">${strandedSubtitle}</div>
-                        ${guidanceHTML}
-                        ${strandedDiceDisplay}
-                        <div style="margin-top: 20px; text-align: center;">
-                            ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
-                            <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
+                // Check if player has succeeded before in this session
+                if (!this.gameState.hasSucceededThisSession) {
+                    // Player hasn't cleared the board yet - show encouraging message
+                    gridHTML += `
+                        <div id="gameOverOverlay" class="stranded-celebration">
+                            <div class="stranded-title">Run complete</div>
+                            <div class="win-subtitle no-success-message">Nice moves, but you left a total of ${finalScore} points stranded. Start over and try to end up with no dice remaining at all!</div>
+                            <div class="share-message-placeholder">
+                                <div id="shareSolutionMessage" class="share-solution-message"></div>
+                            </div>
+                            <div class="start-over-hint">
+                                <svg width="40" height="45" viewBox="0 0 40 45" class="start-over-arrow">
+                                    <path d="M 35 25 Q 25 15, 15 20" stroke="white" stroke-width="2" fill="none"/>
+                                    <g transform="rotate(-10, 15, 20)">
+                                        <path d="M 15 20 L 20 16 L 15 20 L 20 24" stroke="white" stroke-width="2" fill="none"/>
+                                    </g>
+                                </svg>
+                                <span class="start-over-text">Click "New Run" to start over</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Player has succeeded before - show normal stranded screen
+                    // Create guidance table if thresholds exist
+                    let guidanceHTML = '';
+                    if (this.gameState.strandedThresholds && !this.isDemoMode) {
+                        // Hide message if achievement unlocked, but always show table
+                        guidanceHTML = this.createStrandedGuidanceHTML(!!thresholdLabel);
+                    }
+                    
+                    const strandedDiceDisplay = ''; // No separate dice display
+                    
+                    gridHTML += `
+                        <div id="gameOverOverlay" class="stranded-celebration">
+                            <div class="stranded-title">Run complete</div>
+                            <div class="win-subtitle">${strandedSubtitle}</div>
+                            ${guidanceHTML}
+                            ${strandedDiceDisplay}
+                            <div style="margin-top: 20px; text-align: center;">
+                                ${this.isDemoMode ? '' : '<button id="shareSolutionButton" class="game-btn share-btn" style="padding: 12px 24px; min-width: 120px;">Share</button>'}
+                                <div id="shareSolutionMessage" style="opacity: 0; height: 0; line-height: 0; position: relative; top: 16px; color: white; text-align: center; font-size: 14px; transition: opacity 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
         
