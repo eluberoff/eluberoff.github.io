@@ -77,7 +77,9 @@ class Game {
             currentRunNumber: 1, // Current run number
             minStepsForPuzzle: null, // Minimum steps for perfect solution
             strandedThresholds: null, // Cached stranded score thresholds
-            hasSucceededThisSession: false // Track if player has ever cleared the board in this session
+            hasSucceededThisSession: false, // Track if player has ever cleared the board in this session
+            isCustomPuzzle: false, // Track if this is a custom puzzle (not a daily puzzle)
+            matchedDailyPuzzleNumber: null // If this matches a daily puzzle, which number
         };
         
         // Emoji mapping for move tracking
@@ -430,16 +432,81 @@ class Game {
         return () => Math.random();
     }
     
+    isPuzzleMatchingDaily(puzzleState) {
+        // Check if the current puzzle matches any of the daily puzzles
+        if (!puzzleState) {
+            puzzleState = this.encodePuzzleState();
+        }
+        
+        for (let i = 0; i < DAILY_PUZZLES.length; i++) {
+            if (DAILY_PUZZLES[i] === puzzleState) {
+                return i + 1; // Return puzzle number (1-based)
+            }
+        }
+        return null; // Not a daily puzzle
+    }
+    
+    updatePuzzleMatchStatus() {
+        // Special case: if we loaded from archive, we know it's a daily puzzle
+        if (this.gameState.overridePuzzleNumber) {
+            this.gameState.isCustomPuzzle = false;
+            this.gameState.matchedDailyPuzzleNumber = this.gameState.overridePuzzleNumber;
+            return;
+        }
+        
+        // Otherwise, check the actual puzzle content to determine if it's custom
+        const currentPuzzleState = this.encodePuzzleState();
+        const matchedPuzzleNumber = this.isPuzzleMatchingDaily(currentPuzzleState);
+        
+        if (matchedPuzzleNumber) {
+            // Current puzzle matches a daily puzzle
+            this.gameState.isCustomPuzzle = false;
+            this.gameState.matchedDailyPuzzleNumber = matchedPuzzleNumber;
+        } else {
+            // Current puzzle doesn't match any daily puzzle
+            this.gameState.isCustomPuzzle = true;
+            this.gameState.matchedDailyPuzzleNumber = null;
+        }
+    }
+    
+    getPuzzleTitle() {
+        // Centralized method to get the puzzle title string
+        // Update the match status based on current puzzle content
+        this.updatePuzzleMatchStatus();
+        
+        if (this.isDemoMode) {
+            // Demo mode - no number
+            return 'Disappearing Dice';
+        } else if (this.gameState.isCustomPuzzle) {
+            // Custom puzzle - no number
+            return 'Disappearing Dice';
+        } else {
+            // Matched daily puzzle - show with the matched number
+            const puzzleNumber = this.gameState.matchedDailyPuzzleNumber;
+            return `Disappearing Dice #${puzzleNumber}`;
+        }
+    }
+    
     updateGameTitle() {
         const titleElement = document.getElementById('gameTitle');
         const subtitleElement = document.getElementById('puzzleSubtitle');
         
+        // Update puzzle match status based on current content
+        this.updatePuzzleMatchStatus();
+        
         if (this.isAdminMode) {
-            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
-            const formattedDate = this.getFormattedDate(this.gameState.overridePuzzleNumber);
-            
-            titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
-            subtitleElement.innerHTML = `${formattedDate} <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>`;
+            if (this.gameState.isCustomPuzzle) {
+                // Custom puzzle in admin mode - show number but indicate it's custom
+                titleElement.textContent = this.getPuzzleTitle();
+                subtitleElement.innerHTML = 'Custom Puzzle (Admin) <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>';
+            } else {
+                // Use matched daily puzzle number if available, otherwise use current/override
+                const puzzleNumber = this.gameState.matchedDailyPuzzleNumber;
+                const formattedDate = this.getFormattedDate(puzzleNumber);
+                
+                titleElement.textContent = this.getPuzzleTitle();
+                subtitleElement.innerHTML = `${formattedDate} <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>`;
+            }
             
             // Add dropdown if it doesn't exist
             if (!document.getElementById('historyDropdown')) {
@@ -457,14 +524,35 @@ class Game {
                 });
             }
         } else if (this.isDemoMode) {
-            titleElement.textContent = 'Disappearing Dice';
+            titleElement.textContent = this.getPuzzleTitle();
             subtitleElement.textContent = 'Getting Started';
+        } else if (this.gameState.isCustomPuzzle) {
+            // Custom puzzle - no number, show "Custom Puzzle" instead of date
+            titleElement.textContent = this.getPuzzleTitle();
+            subtitleElement.innerHTML = 'Custom Puzzle <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>';
+            
+            // Add dropdown if it doesn't exist
+            if (!document.getElementById('historyDropdown')) {
+                this.createHistoryDropdown();
+            }
+            
+            // Add click handler for the archive link
+            const archiveLink = document.getElementById('archiveLink');
+            if (archiveLink && !archiveLink.hasClickHandler) {
+                archiveLink.hasClickHandler = true;
+                archiveLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleHistoryDropdown();
+                });
+            }
         } else {
-            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
-            const formattedDate = this.getFormattedDate(this.gameState.overridePuzzleNumber);
+            // Use matched daily puzzle number if available, otherwise use current/override
+            const puzzleNumber = this.gameState.matchedDailyPuzzleNumber;
+            const formattedDate = this.getFormattedDate(puzzleNumber);
             
             // Set the title as plain text
-            titleElement.textContent = `Disappearing Dice #${puzzleNumber}`;
+            titleElement.textContent = this.getPuzzleTitle();
             
             // Create subtitle with date and archive link
             subtitleElement.innerHTML = `${formattedDate} <span class="archive-link-wrapper">(<a href="#" class="archive-link" id="archiveLink">Archive</a>)</span>`;
@@ -832,6 +920,21 @@ class Game {
         this.gameState.selectedDie = null;
         this.clearTransientState();
         // Note: Target preview is cleared via clearTransientState()
+    }
+    
+    resetDieToStartPosition() {
+        // Reset die to its starting position while keeping it selected
+        if (!this.gameState.selectedDie) return;
+        
+        this.clearTransientState();
+        // Reset transient tile to original position
+        this.gameState.movesRemaining = this.gameState.selectedDie.value;
+        this.gameState.transientTile = {
+            position: this.gameState.selectedDie.position,
+            value: this.gameState.selectedDie.value,
+            originalDiceId: this.gameState.selectedDie.id
+        };
+        this.render();
     }
     
     setTargetPreview(diceId) {
@@ -1417,6 +1520,11 @@ class Game {
         // Generate completely new dice configuration (admin mode only)
         this.placeDice();
         
+        // Clear override since this is a newly generated puzzle
+        this.gameState.overridePuzzleNumber = null;
+        
+        // The puzzle match status will be updated when updateGameTitle is called
+        
         // Invalidate solution cache since dice state changed
         this.invalidateSolutionCache();
         
@@ -1435,6 +1543,7 @@ class Game {
         this.updateButtons();
         // Clear URL parameters for new game
         this.clearUrlParameters();
+        this.updateGameTitle(); // Update title to reflect non-custom puzzle
         this.render();
         this.updateSolutionDisplay(); // Update solutions after new game
     }
@@ -1474,14 +1583,7 @@ class Game {
     
     shareSolution() {
         // Create the solution share message
-        let puzzleTitle;
-        if (this.isAdminMode) {
-            puzzleTitle = 'Disappearing Dice';
-        } else {
-            const puzzleNumber = this.gameState.overridePuzzleNumber || this.getDailyPuzzleNumber();
-            puzzleTitle = `Disappearing Dice #${puzzleNumber}`;
-        }
-        
+        const puzzleTitle = this.getPuzzleTitle();
         const finalScore = this.getFinalScore();
         const currentUrl = window.location.href;
         let shareText;
@@ -1740,23 +1842,11 @@ class Game {
                 if (this.gameState.selectedDie) {
                     // Check if the die has moved from its starting position
                     if (this.hasMovedFromStart()) {
-                        // Die has moved - just clear movement state but keep die selected
-                        this.gameState.movesRemaining = this.gameState.selectedDie.value;
-                        this.gameState.transientTile = {
-                            position: this.gameState.selectedDie.position,
-                            value: this.gameState.selectedDie.value,
-                            originalDiceId: this.gameState.selectedDie.id
-                        };
-                        this.gameState.trailCells = [];
-                        this.gameState.showMobileTileHints = false;
-                        this.clearTargetPreview(); // Clear hint when pressing Escape
-                        this.clearPathArrows(); // Clear path arrows when pressing Escape
-                        this.render();
+                        // Die has moved - reset to start position
+                        this.resetDieToStartPosition();
                     } else {
                         // Die hasn't moved - deselect entirely
                         this.clearSelectedDie();
-                        this.clearTargetPreview(); // Clear hint when pressing Escape
-                        this.clearPathArrows(); // Clear path arrows when pressing Escape
                         this.render();
                     }
                     return;
@@ -2296,6 +2386,20 @@ class Game {
     }
     
     undo() {
+        // Check if we're in the middle of a move (transient tile exists or moves remaining)
+        if (this.gameState.transientTile || (this.gameState.selectedDie && this.gameState.movesRemaining > 0)) {
+            // Act like escape - return to start without counting as undo
+            if (this.hasMovedFromStart()) {
+                // Die has moved - reset to start position
+                this.resetDieToStartPosition();
+            } else {
+                // Die hasn't moved - deselect entirely
+                this.clearSelectedDie();
+                this.render();
+            }
+            return; // Early return - don't count as undo
+        }
+        
         if (this.gameState.history.length === 0) {
             return;
         }
